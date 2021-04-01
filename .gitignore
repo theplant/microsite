@@ -1,0 +1,5 @@
+.envrc
+.DS_Store
+.cache
+dev_admin
+docker-compose.yml
