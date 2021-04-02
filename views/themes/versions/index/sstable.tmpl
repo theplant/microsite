@@ -1,0 +1,39 @@
+{{$context := .}}
+{{$resource := .Resource}}
+
+{{if len .Result}}
+    <table class="mdl-data-table mdl-js-data-table qor-table qor-js-table">
+        <thead>
+                <tr>
+                        {{$order_by := $context.Request.URL.Query.Get "order_by"}}
+                        {{$metas := convert_sections_to_metas $resource index_sections}}
+                        {{range $index, $meta := $metas}}
+				{{$dbName := $meta.DBName}}
+				{{$is_sorted := eq $order_by $dbName}}
+			        {{$is_desc_sorted := eq $order_by (print $dbName "_desc")}}
+			        <th class="mdl-data-table__cell--non-numeric {{if is_sortable_meta $meta}}{{if (or $is_sorted $is_desc_sorted)}}is-sorted{{end}}{{end}}" data-heading="{{$meta.Name}}" {{if is_sortable_meta $meta}}{{if $is_sorted}}data-order-by="{{$dbName}}_desc"{{else}}data-order-by="{{$dbName}}"{{end}}{{end}}>{{meta_label $meta}}</th>
+                        {{end}}
+                        <th class="mdl-data-table__cell--non-numeric qor-table__actions"></th>
+                </tr>
+        </thead>
+
+	{{ $versions := get_published_versions . }}
+	<tbody>
+	{{range $version := $versions}}
+	{{ if ne $version.ID 0 }}
+	    {{render_with "index/result" (to_map "Result" $version "Resource" $resource "Metas" $metas "Context" $context)}}
+	{{ end }}
+	{{ end }}
+	</tbody>
+
+        <tbody>
+            {{range $result := .Result}}
+                {{ if ne $result.Status "Published"}}
+                    {{render_with "index/result" (to_map "Result" $result "Resource" $resource "Metas" $metas "Context" $context)}}
+                {{ end }}
+            {{end}}
+        </tbody>
+    </table>
+{{else}}
+    <h2 class="qor-page__tips">{{t (printf "%v.tables.no_items" $resource.ToParam) (printf "No %v to show." (lower (plural $resource.Name)))}}</h2>
+{{end}}

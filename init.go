@@ -8,10 +8,12 @@ import (
 
 	"github.com/jinzhu/gorm"
 	"github.com/qor/admin"
+	"github.com/qor/inflection"
 	"github.com/qor/media"
 	"github.com/qor/oss"
 	"github.com/qor/publish2"
 	"github.com/qor/qor"
+	"github.com/qor/roles"
 )
 
 var (
@@ -54,13 +56,33 @@ func New(adm *admin.Admin, pubS3 oss.StorageInterface, priS3 oss.StorageInterfac
 	publicS3 = pubS3
 	privateS3 = priS3
 
+	inflection.AddUncountable("micro_sites")
+	inflection.AddUncountable("microsite_versions")
+
 	DB := adm.DB
 	DB.AutoMigrate(&QorMicroSite{})
-	micrositeRes := adm.AddResource(&QorMicroSite{}, &admin.Config{Name: "MicroSite"})
+	admin.RegisterViewPath("github.com/theplant/microsite/views")
 
-	micrositeRes.Meta(&admin.Meta{Name: "Name", Label: "Site Name"})
-	micrositeRes.Meta(&admin.Meta{Name: "URL", Label: "Microsite URL"})
-	micrositeRes.Meta(&admin.Meta{
+	addAdminResource(adm, "MicroSites")
+
+	addAdminResource(adm, "microsite_versions")
+	adm.GetMenu("microsite_versions").Permission = roles.Deny(roles.CRUD, roles.Anyone)
+
+	media.RegisterMediaHandler("unzip_package_handler", unzipPackageHandler{})
+	adm.RegisterFuncMap("getmic_versions", getVersions)
+}
+
+func addAdminResource(adm *admin.Admin, name string) {
+	res := adm.AddResource(&QorMicroSite{}, &admin.Config{Name: name})
+	if name != "microsite_versions" {
+		res.UseTheme("microsites")
+	} else {
+		res.UseTheme("versions")
+	}
+
+	res.Meta(&admin.Meta{Name: "Name", Label: "Site Name"})
+	res.Meta(&admin.Meta{Name: "URL", Label: "Microsite URL"})
+	res.Meta(&admin.Meta{
 		Name: "FileList",
 		Type: "readonly",
 		Valuer: func(value interface{}, ctx *qor.Context) interface{} {
@@ -73,13 +95,11 @@ func New(adm *admin.Admin, pubS3 oss.StorageInterface, priS3 oss.StorageInterfac
 		},
 	})
 
-	// Register Callbacks
-	media.RegisterCallbacks(DB)
-	micrositeRes.IndexAttrs("Name", "URL", "UpdatedAt", "Status")
-	micrositeRes.EditAttrs("Name", "URL", "FileList", "Package")
-	micrositeRes.NewAttrs(micrositeRes.NewAttrs(), "-Status", "-FileList")
+	res.IndexAttrs("Name", "URL", "UpdatedAt", "Status")
+	res.EditAttrs("Name", "URL", "FileList", "Package")
+	res.NewAttrs(res.NewAttrs(), "-Status", "-FileList")
 
-	micrositeRes.Action(&admin.Action{
+	res.Action(&admin.Action{
 		Name: "Preview",
 		URL: func(record interface{}, context *admin.Context) string {
 			this := record.(QorMicroSiteInterface)
@@ -89,7 +109,7 @@ func New(adm *admin.Admin, pubS3 oss.StorageInterface, priS3 oss.StorageInterfac
 		Modes:       []string{"show", "edit"},
 	})
 
-	micrositeRes.Action(&admin.Action{
+	res.Action(&admin.Action{
 		Name: "Publish",
 		Handler: func(argument *admin.ActionArgument) (err error) {
 			err = ChangeStatus(argument, Action_publish)
@@ -98,7 +118,7 @@ func New(adm *admin.Admin, pubS3 oss.StorageInterface, priS3 oss.StorageInterfac
 		Modes: []string{"edit"},
 	})
 
-	micrositeRes.Action(&admin.Action{
+	res.Action(&admin.Action{
 		Name: "Republish",
 		Handler: func(argument *admin.ActionArgument) (err error) {
 			err = ChangeStatus(argument, Action_republish)
@@ -107,7 +127,7 @@ func New(adm *admin.Admin, pubS3 oss.StorageInterface, priS3 oss.StorageInterfac
 		Modes: []string{"edit"},
 	})
 
-	micrositeRes.Action(&admin.Action{
+	res.Action(&admin.Action{
 		Name: "Unpublish",
 		Handler: func(argument *admin.ActionArgument) (err error) {
 			err = ChangeStatus(argument, Action_unpublish)
@@ -115,7 +135,6 @@ func New(adm *admin.Admin, pubS3 oss.StorageInterface, priS3 oss.StorageInterfac
 		},
 		Modes: []string{"edit"},
 	})
-	media.RegisterMediaHandler("unzip_package_handler", unzipPackageHandler{})
 }
 
 func AutoPublishMicrosite() error {

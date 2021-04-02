@@ -1,0 +1,51 @@
+{{$metaName := meta_label .Meta}}
+{{$fieldName := .Meta.FieldName}}
+{{$result:=.ResourceValue}}
+<div class="qor-field">
+    <div class="mdl-textfield mdl-textfield--full-width mdl-js-textfield">
+        <label class="qor-field__label mdl-textfield__label" for="{{.InputId}}">
+            {{$metaName}}
+        </label>
+        {{if (eq $fieldName "FilesList")}}
+            <div class="qor-field__show mcd-s3-lists-box">
+                {{ range $value := .Value}}
+                    <a href="{{$value}}" target="_blank">
+                        {{$value}}
+                    </a>
+                {{end}}
+            </div>
+
+            <div class="qor-field__edit mcd-s3-lists-box">
+                {{ range $value := .Value}}
+                    <a href="{{$value}}" target="_blank">
+                        {{$value}}
+                    </a>
+                {{end}}
+            </div>
+        {{else if (eq $fieldName "FilesPreview")}}
+            <div class="qor-field__show">
+                {{ range $value := .Value}}
+                    <a href="{{$result.GetPreviewURL}}" target="_blank">
+                        {{$value}}
+                    </a>
+                {{end}}
+            </div>
+
+            <div class="qor-field__edit">
+                {{ range $value := .Value}}
+                    <a href="{{$result.GetPreviewURL}}" target="_blank">
+                        {{$value}}
+                    </a>
+                {{end}}
+            </div>
+        {{else}}
+            <div class="qor-field__show">
+                {{.Value}}
+            </div>
+
+            <div class="qor-field__edit">
+                {{.Value}}
+            </div>
+        {{end}}
+    </div>
+</div>

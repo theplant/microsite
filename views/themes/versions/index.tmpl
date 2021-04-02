@@ -1,0 +1,20 @@
+<div class="qor-page__body">
+	{{render "shared/flashes"}}
+	{{render "shared/errors"}}
+
+	<div class="qor-table-container">
+		{{getmic_versions .}}
+	</div>
+
+	{{if has_create_permission .Resource}}
+		<button class="mdl-button mdl-button--colored mdl-button--raised qor-button--new qorcms-new-version"
+		data-button-done="{{t "qor_admin.form.done" "Done"}}"
+		data-button-cancel="{{t "qor_admin.form.cancel" "Cancel"}}"
+		data-scope = "{{ .Resource.Name }}"
+		data-button-title="{{t "qor_admin.create_new_version_choose_versions_title" "Choose a base version"}}"
+		>
+		<i class="material-icons">add</i> {{t "qor_admin.form.button.create_new_version" "create new version"}}</button>
+	{{end}}
+	
+</div>
+

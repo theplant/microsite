@@ -1,0 +1,51 @@
+{{$result := .Result}}
+{{$resource := .Resource}}
+{{$metas := .Metas}}
+{{$context := .Context}}
+
+{{$primaryKey := primary_key_of $result}}
+{{$uniqueKey := unique_key_of $result}}
+
+<tr data-primary-key="{{$primaryKey}}" data-version-name="{{$result.VersionName}}" data-url="{{url_for $result $resource}}">
+    {{range $meta := $metas}}
+        {{$value := render_meta $result $meta}}
+
+        <td class="mdl-data-table__cell--non-numeric" data-heading="{{$meta.Name}}">
+            {{if eq $meta.Name "Notes"}}
+                <div class="qor-table__content qorcms-vesion-notes-list">{{$value}}</div>
+            {{else if eq $meta.Name "Status"}}
+                <div class="qor-table__content" data-status="{{$result.Status}}">{{$value}}</div>
+            {{else }}
+                <div class="qor-table__content" title="{{$value}}">{{$value}}</div>
+            {{end}}
+        </td>
+    {{end}}
+
+    <td class="mdl-data-table__cell--non-numeric qor-table__actions">
+        {{$allowed_actions := allowed_actions $resource.GetActions "menu_item" $result}}
+
+        {{if $allowed_actions}}
+            <button id="actions-for-{{$uniqueKey}}" class="mdl-button mdl-js-button mdl-button--icon qor-button--actions">
+                <i class="material-icons">more_vert</i>
+            </button>
+
+            <ul class="mdl-menu mdl-menu--bottom-right mdl-js-menu" for="actions-for-{{$uniqueKey}}">
+            {{range $action := $allowed_actions}}
+		{{ if ne $action.Name "Delete" }}
+                  <li class="mdl-menu__item" qor-icon-name="{{$action.Name}}">
+                    {{render_with "shared/action_item" (to_map "Action" $action "Result" $result "Context" $context "Resource" $resource "Mode" "menu_item")}}
+                  </li>
+                {{end}}
+	    {{ end }}
+
+	    {{range $action := $allowed_actions}}
+                {{ if and (eq $action.Name "Delete") (has_permission $context "delete" $result) }}
+                  <li class="mdl-menu__item" qor-icon-name="{{$action.Name}}">
+                    {{render_with "shared/action_item" (to_map "Action" $action "Result" $result "Context" $context "Resource" $resource "Mode" "menu_item")}}
+                  </li>
+                {{end}}
+            {{end}}
+            </ul>
+        {{end}}
+    <td>
+</tr>

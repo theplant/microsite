@@ -1,0 +1,19 @@
+{{$context := .}}
+{{$actions := load_actions "index" }}
+{{if $actions}}
+	<div class="qor-page__header">
+	    {{$actions}}
+	</div>
+{{end}}
+
+<div class="qor-page__body">
+        <div class="qor-section">
+            +++++++{{.Result}}+++++
+
+            {{if .Result}}
+                <div class="qor-section__col">
+                    {{(new_resource_context .Result).Render "index/table" .Result}}
+                </div>
+            {{end}}
+        </div>
+</div>

@@ -1,0 +1,88 @@
+{{$actions := load_actions "edit"}}
+{{if $actions}}
+  <div class="qor-page__header">{{$actions}}</div>
+{{end}}
+
+<div class="qor-page__body qor-page__edit">
+
+  {{render "shared/flashes"}}
+  {{render "shared/errors"}}
+
+  <div class="qor-form-container">
+    {{ if eq .Resource.Name "Page Versions" }}
+    <form class="qor-form qorcms-new-version-normal-form {{if not (has_permission . "update")}}qorcms-no_permission{{end}}"
+          action="{{url_for .Result .Resource}}" method="POST" enctype="multipart/form-data"
+          data-normal-submit="true" data-form-status={{.Result.Status}}
+          data-form-name="{{.Resource.Name}}"
+	  data-edit-module="true" data-takeover-publish="true">
+    {{ else }}
+    <form class="qor-form {{if not (has_permission . "update")}}qorcms-no_permission{{end}}"
+          action="{{url_for .Result .Resource}}" method="POST" enctype="multipart/form-data"
+          data-form-name="{{.Resource.Name}}"
+          data-form-status={{.Result.Status}}
+          data-takeover-publish="true">
+    {{ end }}
+
+    <div class="qorcms-page-status-wrapper">
+      {{if eq .Result.Status "Unpublished"}}
+        <div class="qorcms-page-status--unpublished">{{t "qor_admin.page.status.unpublished" "Unpublished"}}</div>
+      {{else}}
+      <ul class="qorcms-page-status">
+	<li {{if eq .Result.Status "Draft"}}class="current"{{end}}>{{t "qor_admin.page.status.draft" "Draft"}}</li>
+	{{ if ne .Resource.Name "URL Redirect Versions" }}
+        <li {{if eq .Result.Status "Review"}}class="current"{{end}}>{{t "qor_admin.page.status.review" "Review"}}</li>
+        <li {{if or (eq .Result.Status "Approved") (eq .Result.Status "Returned")}}class="current"{{end}}>
+            {{if eq .Result.Status "Returned"}}
+              {{t "qor_admin.page.status.returned" "Returned"}}
+            {{else}}
+              {{t "qor_admin.page.status.approved" "Approved"}}
+            {{end}}
+	</li>
+	{{ end }}
+        <li {{if eq .Result.Status "Published"}}class="current"{{end}}>{{t "qor_admin.page.status.published" "Published"}}</li>
+      </ul>
+      {{end}}
+    </div>
+
+      <input name="_method" value="PUT" type="hidden">
+
+      <div class="qorcms-versions-publish-control">
+        <div class="qor-form-section clearfix" data-section-title="Publish Control">
+
+          <label class="qor-field__label qor-form-section-title">
+            {{t "qor_admin.form.title.publish_control" "Publish Control"}}
+          </label>
+          <div class="qor-fieldset qorcms-versions-publish-control-content"></div>
+        </div>
+      </div>
+
+      {{render_form .Result edit_sections}}
+
+	{{ if show_edit_containers_button .Resource.Name }}
+		{{if (has_permission . "update")}}
+		<a href="{{pb2_edit_url .Result .}}" class="nhk-edit-container mdl-button mdl-button--colored mdl-button--raised mdl-js-button">
+		{{t "pages.form.sections.edit_containers" "EDIT CONTAINERS"}}
+		</a>
+		{{if has_update_permission .Resource}}
+		<div class="qor-form__actions">
+			<button class="mdl-button mdl-button--colored mdl-button--raised mdl-js-button mdl-js-ripple-effect qor-button--save" type="submit"{{if not (has_permission . "update")}}disabled{{end}}>{{t "qor_admin.form.save_changes" "Save Changes"}}</button>
+			<a class="mdl-button mdl-button--primary mdl-js-button mdl-js-ripple-effect qor-button--cancel" href="javascript:history.back();"{{if not (has_permission . "update")}}disabled{{end}}>{{t "qor_admin.form.cancel_edit" "Cancel Edit"}}</a>
+		</div>
+		{{end}}
+		{{end}}
+	{{ else }}
+		{{if (has_permission . "update")}}
+		{{if has_update_permission .Resource}}
+		<div class="qor-form__actions">
+			<button class="mdl-button mdl-button--colored mdl-button--raised mdl-js-button mdl-js-ripple-effect qor-button--save" type="submit"{{if not (has_permission . "update")}}disabled{{end}}>{{t "qor_admin.form.save_changes" "Save Changes"}}</button>
+			<a class="mdl-button mdl-button--primary mdl-js-button mdl-js-ripple-effect qor-button--cancel" href="javascript:history.back();"{{if not (has_permission . "update")}}disabled{{end}}>{{t "qor_admin.form.cancel_edit" "Cancel Edit"}}</a>
+		</div>
+		{{end}}
+		{{end}}
+	{{end}}
+    </form>
+  </div>
+</div>
+{{else}}
+  <div class="qor-page__tips">{{t "pages.no_permission.tips.you_do_not_have_permission_to_access_this_page" "You do not have permission to access this page"}}</div>
+{{end}}
