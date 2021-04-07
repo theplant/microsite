@@ -71,8 +71,26 @@ func addAdminResource(adm *admin.Admin, name string) {
 	res := adm.AddResource(&QorMicroSite{}, &admin.Config{Name: name})
 	if name != "microsite_versions" {
 		res.UseTheme("general_resource")
+		res.IndexAttrs("ID", "Name", "URL", "PublishedAt", "Live")
+		res.Meta(&admin.Meta{
+			Name: "Live",
+			Valuer: func(record interface{}, ctx *qor.Context) interface{} {
+				if ann, ok := record.(interface {
+					GetMicroSiteID() uint
+				}); ok {
+					var count int
+					ctx.DB.Model(&QorMicroSite{}).Set(publish2.VersionMode, publish2.VersionMultipleMode).Set(publish2.ScheduleMode, publish2.ModeOff).Where("id = ? AND status = ?", ann.GetMicroSiteID(), Status_published).Count(&count)
+					if count > 0 {
+						return template.HTML("<span class='qor-publish2__live'><span class='qor-symbol qor-symbol-blue' title='This page is live'></span></span>")
+					}
+					return ""
+				}
+				return ""
+			},
+		})
 	} else {
 		res.UseTheme("versions")
+		res.IndexAttrs("Name", "URL", "PublishedAt", "Status")
 	}
 
 	res.Meta(&admin.Meta{Name: "Name", Label: "Site Name"})
@@ -90,7 +108,6 @@ func addAdminResource(adm *admin.Admin, name string) {
 		},
 	})
 
-	res.IndexAttrs("Name", "URL", "UpdatedAt", "Status")
 	res.EditAttrs("Name", "URL", "FileList", "Package")
 	res.NewAttrs(res.NewAttrs(), "-Status", "-FileList")
 

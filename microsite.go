@@ -2,6 +2,7 @@ package microsite
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/jinzhu/gorm"
@@ -82,6 +83,12 @@ func (site *QorMicroSite) SetStatus(status string) {
 
 func (site QorMicroSite) PublishCallback(tx *gorm.DB, ctx context.Context) (err error) {
 	return
+}
+
+func (site *QorMicroSite) BeforeCreate(scope *gorm.Scope) (err error) {
+	site.Status = Status_draft
+	site.VersionPriority = fmt.Sprintf("%v", site.CreatedAt.UTC().Format(time.RFC3339))
+	return nil
 }
 
 func (this *QorMicroSite) BeforeDelete(scope *gorm.Scope) (err error) {
