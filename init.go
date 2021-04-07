@@ -2,7 +2,9 @@ package microsite
 
 import (
 	"context"
+	"fmt"
 	"html/template"
+	"path"
 	"strings"
 	"time"
 
@@ -90,7 +92,7 @@ func addAdminResource(adm *admin.Admin, name string) {
 		})
 	} else {
 		res.UseTheme("versions")
-		res.IndexAttrs("Name", "URL", "PublishedAt", "Status")
+		res.IndexAttrs("Name", "VersionName", "URL", "PublishedAt", "Status")
 	}
 
 	res.Meta(&admin.Meta{Name: "Name", Label: "Site Name"})
@@ -102,7 +104,7 @@ func addAdminResource(adm *admin.Admin, name string) {
 			this := value.(QorMicroSiteInterface)
 			var result string
 			for _, v := range strings.Split(this.GetFileList(), ",") {
-				result += v + "<br>"
+				result += fmt.Sprintf(`<a href="%v" target="_blank"> %v </a><br>`, "//"+path.Join(this.GetPreviewURL(), v), v)
 			}
 			return template.HTML(result)
 		},
@@ -147,7 +149,9 @@ func addAdminResource(adm *admin.Admin, name string) {
 		},
 		Modes: []string{"edit"},
 	})
-
+	res.OverrideIndexAttrs(func() {
+		res.IndexAttrs(res.IndexAttrs(), "-PublishLiveNow", "-ScheduledStartAt", "-ScheduledEndAt")
+	})
 }
 
 func AutoPublishMicrosite() error {
