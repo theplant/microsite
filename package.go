@@ -146,7 +146,7 @@ func getFile(path string) (file *os.File, err error) {
 	pattern := fmt.Sprintf("s3*%s", ext)
 
 	if err == nil {
-		if file, err = ioutil.TempFile("./tmp", pattern); err == nil {
+		if file, err = ioutil.TempFile("public/system/qor_jobs", pattern); err == nil {
 			defer readCloser.Close()
 			_, err = io.Copy(file, readCloser)
 			file.Seek(0, 0)

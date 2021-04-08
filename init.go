@@ -61,7 +61,7 @@ func New(adm *admin.Admin, pubS3 oss.StorageInterface, priS3 oss.StorageInterfac
 
 	inflection.AddUncountable("micro_sites")
 	inflection.AddUncountable("microsite_versions")
-	if err := os.Mkdir("tmp", os.ModePerm); err != nil && !os.IsExist(err) && !os.IsPermission(err) {
+	if err := os.MkdirAll("public/system/qor_jobs", os.ModePerm); err != nil && !os.IsExist(err) && !os.IsPermission(err) {
 		panic(err)
 	}
 	DB := adm.DB
