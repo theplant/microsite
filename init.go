@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"html/template"
+	"os"
 	"path"
 	"strings"
 	"time"
@@ -60,7 +61,9 @@ func New(adm *admin.Admin, pubS3 oss.StorageInterface, priS3 oss.StorageInterfac
 
 	inflection.AddUncountable("micro_sites")
 	inflection.AddUncountable("microsite_versions")
-
+	if err := os.Mkdir("tmp", os.ModePerm); err != nil && !os.IsExist(err) && !os.IsPermission(err) {
+		panic(err)
+	}
 	DB := adm.DB
 	DB.AutoMigrate(&QorMicroSite{})
 	addAdminResource(adm, "MicroSites")

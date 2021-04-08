@@ -3,6 +3,8 @@ package microsite
 import (
 	"archive/zip"
 	"bytes"
+	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path"
@@ -68,7 +70,7 @@ func (packageHandler unzipPackageHandler) Handle(media media.Media, file media.F
 
 func UnzipPkgAndUpload(pkgURL, dest string) (files string, err error) {
 	baseName := strings.TrimSuffix(filepath.Base(pkgURL), filepath.Ext(pkgURL))
-	file, err := mediaoss.Storage.Get(pkgURL)
+	file, err := getFile(pkgURL)
 	if err != nil {
 		return files, err
 	}
@@ -135,4 +137,21 @@ func UnzipPkgAndUpload(pkgURL, dest string) (files string, err error) {
 	}
 
 	return strings.Join(arr, ","), nil
+}
+
+//create tempFile at locale
+func getFile(path string) (file *os.File, err error) {
+	readCloser, err := mediaoss.Storage.GetStream(path)
+	ext := filepath.Ext(path)
+	pattern := fmt.Sprintf("s3*%s", ext)
+
+	if err == nil {
+		if file, err = ioutil.TempFile("./tmp", pattern); err == nil {
+			defer readCloser.Close()
+			_, err = io.Copy(file, readCloser)
+			file.Seek(0, 0)
+		}
+	}
+
+	return file, err
 }
