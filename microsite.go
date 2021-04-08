@@ -87,6 +87,7 @@ func (site QorMicroSite) PublishCallback(tx *gorm.DB, ctx context.Context) (err 
 
 func (site *QorMicroSite) BeforeCreate(scope *gorm.Scope) (err error) {
 	site.Status = Status_draft
+	site.CreatedAt = gorm.NowFunc()
 	site.VersionPriority = fmt.Sprintf("%v", site.CreatedAt.UTC().Format(time.RFC3339))
 	return nil
 }
