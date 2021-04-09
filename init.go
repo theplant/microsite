@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"html/template"
 	"os"
-	"path"
 	"strings"
 	"time"
 
@@ -107,7 +106,7 @@ func addAdminResource(adm *admin.Admin, name string) {
 			this := value.(QorMicroSiteInterface)
 			var result string
 			for _, v := range strings.Split(this.GetFileList(), ",") {
-				result += fmt.Sprintf(`<a href="%v" target="_blank"> %v </a><br>`, "//"+path.Join(this.GetPreviewURL(), v), v)
+				result += fmt.Sprintf(`<a href="%v" target="_blank"> %v </a><br>`, this.GetPreviewURL()+"/"+v, v)
 			}
 			return template.HTML(result)
 		},

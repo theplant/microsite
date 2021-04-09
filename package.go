@@ -31,10 +31,11 @@ func (pkg Package) ListObjects() ([]*oss.Object, error) {
 func (site QorMicroSite) GetPreviewURL() string {
 	_url := strings.Replace(path.Dir(site.Package.URL()), ZIP_PACKAGE_DIR, FILE_LIST_DIR, 1)
 	endPoint := mediaoss.Storage.GetEndpoint()
-	if endPoint != "/" {
-		return "//" + _url
+	for _, prefix := range []string{"https://", "http://", "//"} {
+		endPoint = strings.TrimPrefix(endPoint, prefix)
 	}
-	return path.Join(endPoint, _url)
+
+	return "//" + path.Join(endPoint, FILE_LIST_DIR, strings.Split(_url, FILE_LIST_DIR)[1])
 }
 
 // unzipPackageHandler unzip microsite package
