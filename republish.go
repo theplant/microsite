@@ -26,9 +26,9 @@ func Republish(ctx context.Context, version QorMicroSiteInterface, printActivity
 		}()
 
 		var liveRecord QorMicroSite
-		tx.Set(publish2.VersionMode, publish2.VersionMultipleMode).Set(publish2.ScheduleMode, publish2.ModeOff).Where("id = ? AND status = ?", version.GetMicroSiteID(), Status_published).First(&liveRecord)
+		tx.Set(publish2.VersionMode, publish2.VersionMultipleMode).Set(publish2.ScheduleMode, publish2.ModeOff).Where("id = ? AND status = ?", version.GetId(), Status_published).First(&liveRecord)
 
-		if liveRecord.GetMicroSiteID() != 0 {
+		if liveRecord.GetId() != 0 {
 			objs, _ := oss.Storage.List(liveRecord.GetMicroSiteURL())
 			for _, o := range objs {
 				oss.Storage.Delete(o.Path)

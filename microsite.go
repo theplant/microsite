@@ -11,7 +11,7 @@ import (
 
 // QorMicroSiteInterface defined QorMicroSite itself's interface
 type QorMicroSiteInterface interface {
-	GetMicroSiteID() uint
+	GetId() uint
 	GetMicroSiteURL() string
 	GetMicroSitePackage() *Package
 	GetFileList() string
@@ -39,7 +39,7 @@ type QorMicroSite struct {
 }
 
 // GetMicroSiteID will return a site's ID
-func (site QorMicroSite) GetMicroSiteID() uint {
+func (site QorMicroSite) GetId() uint {
 	return site.ID
 }
 

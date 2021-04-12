@@ -26,13 +26,13 @@ func Publish(ctx context.Context, version QorMicroSiteInterface, printActivityLo
 		}()
 
 		var liveRecord QorMicroSite
-		scope := tx.Set(publish2.VersionMode, publish2.VersionMultipleMode).Set(publish2.ScheduleMode, publish2.ModeOff).Where("id = ? AND status = ?", version.GetMicroSiteID(), Status_published)
+		scope := tx.Set(publish2.VersionMode, publish2.VersionMultipleMode).Set(publish2.ScheduleMode, publish2.ModeOff).Where("id = ? AND status = ?", version.GetId(), Status_published)
 		if version.GetVersionName() != "" {
 			scope = scope.Where("version_name <> ?", version.GetVersionName())
 		}
 		scope.First(&liveRecord)
 
-		if liveRecord.GetMicroSiteID() != 0 {
+		if liveRecord.GetId() != 0 {
 			objs, _ := oss.Storage.List(liveRecord.GetMicroSiteURL())
 			for _, o := range objs {
 				oss.Storage.Delete(o.Path)
