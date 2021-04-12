@@ -31,9 +31,7 @@ func (pkg Package) ListObjects() ([]*oss.Object, error) {
 func (site QorMicroSite) GetPreviewURL() string {
 	_url := strings.Replace(path.Dir(site.Package.URL()), ZIP_PACKAGE_DIR, FILE_LIST_DIR, 1)
 	endPoint := mediaoss.Storage.GetEndpoint()
-	for _, prefix := range []string{"https://", "http://", "//"} {
-		endPoint = strings.TrimPrefix(endPoint, prefix)
-	}
+	endPoint = removeHttpPrefix(endPoint)
 
 	return "//" + path.Join(endPoint, FILE_LIST_DIR, strings.Split(_url, FILE_LIST_DIR)[1])
 }
@@ -56,8 +54,7 @@ the path of files: 	 /privates3/microsite/id/version/
 func (packageHandler unzipPackageHandler) Handle(media media.Media, file media.FileInterface, option *media.Option) (err error) {
 	if pkg, ok := media.(*Package); ok && file != nil {
 		fileURL := media.URL()
-		fileURL = strings.TrimPrefix(strings.TrimLeft(fileURL, "/"), mediaoss.Storage.GetEndpoint())
-
+		fileURL = strings.TrimPrefix(strings.TrimLeft(fileURL, "/"), removeHttpPrefix(mediaoss.Storage.GetEndpoint()))
 		if err = media.Store(fileURL, option, file); err == nil {
 			if pkg.Options == nil {
 				pkg.Options = map[string]string{}
@@ -155,4 +152,11 @@ func getFile(path string) (file *os.File, err error) {
 	}
 
 	return file, err
+}
+
+func removeHttpPrefix(endPoint string) string {
+	for _, prefix := range []string{"https://", "http://", "//"} {
+		endPoint = strings.TrimPrefix(endPoint, prefix)
+	}
+	return endPoint
 }
