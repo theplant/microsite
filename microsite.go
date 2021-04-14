@@ -20,9 +20,10 @@ type QorMicroSiteInterface interface {
 	SetVersionPriority(string)
 	GetStatus() string
 	SetStatus(string)
-	//GetSlug() string
 	TableName() string
 	GetCreatedAt() time.Time
+	ValidatorHandler(db *gorm.DB, sitePath string) error
+	SitemapHandler(db *gorm.DB, sitePath, actionName string) error
 }
 
 // QorMicroSite default qor microsite setting struct
@@ -81,18 +82,32 @@ func (site *QorMicroSite) SetStatus(status string) {
 	site.Status = status
 }
 
+func (site QorMicroSite) ValidatorHandler(db *gorm.DB, sitePath string) error {
+	return nil
+}
+
+func (site QorMicroSite) SitemapHandler(db *gorm.DB, sitePath, actionName string) error {
+	return nil
+}
+
 func (site QorMicroSite) PublishCallback(tx *gorm.DB, ctx context.Context) (err error) {
 	return
 }
 
-func (site *QorMicroSite) BeforeCreate(scope *gorm.Scope) (err error) {
+func (site *QorMicroSite) BeforeSave(db *gorm.DB) {
+	if err := site.ValidatorHandler(db, site.URL); err != nil {
+		db.AddError(err)
+	}
+}
+
+func (site *QorMicroSite) BeforeCreate(db *gorm.DB) (err error) {
 	site.Status = Status_draft
 	site.CreatedAt = gorm.NowFunc()
 	site.VersionPriority = fmt.Sprintf("%v", site.CreatedAt.UTC().Format(time.RFC3339))
 	return nil
 }
 
-func (this *QorMicroSite) BeforeDelete(scope *gorm.Scope) (err error) {
+func (this *QorMicroSite) BeforeDelete(db *gorm.DB) (err error) {
 	if this.Status == Status_published {
 		err = Unpublish(context.TODO(), this, false)
 		return

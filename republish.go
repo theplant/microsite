@@ -47,6 +47,10 @@ func Republish(ctx context.Context, version QorMicroSiteInterface, printActivity
 			return
 		}
 
+		if err1 = version.SitemapHandler(_db, version.GetMicroSiteURL(), Action_republish); err1 != nil {
+			return
+		}
+
 		_, err1 = UnzipPkgAndUpload(version.GetMicroSitePackage().Url, version.GetMicroSiteURL())
 		return
 	})
