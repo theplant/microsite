@@ -53,20 +53,15 @@ var changeStatusActionMap = map[string]string{
 }
 
 //New initialize a microsite
-func New(adm *admin.Admin, pubS3 oss.StorageInterface, priS3 oss.StorageInterface) {
-	publicS3 = pubS3
-	privateS3 = priS3
-
+func New(adm *admin.Admin) *admin.Resource {
 	inflection.AddUncountable("micro_sites")
 	if err := os.MkdirAll("public/system/qor_jobs", os.ModePerm); err != nil && !os.IsExist(err) && !os.IsPermission(err) {
 		panic(err)
 	}
 	DB := adm.DB
 	DB.AutoMigrate(&QorMicroSite{})
-	AddAdminResource(adm, "MicroSites")
-	//addAdminResource(adm, "microsite_versions")
-	//adm.GetMenu("microsite_versions").Permission = roles.Deny(roles.CRUD, roles.Anyone)
 	media.RegisterMediaHandler("unzip_package_handler", unzipPackageHandler{})
+	return AddAdminResource(adm, "MicroSites")
 }
 
 func AddAdminResource(adm *admin.Admin, menuName string) *admin.Resource {

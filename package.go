@@ -29,6 +29,9 @@ func (pkg Package) ListObjects() ([]*oss.Object, error) {
 }
 
 func (site QorMicroSite) GetPreviewURL() string {
+	if site.Package.Url == "" {
+		return ""
+	}
 	_url := strings.Replace(path.Dir(site.Package.URL()), ZIP_PACKAGE_DIR, FILE_LIST_DIR, 1)
 	endPoint := mediaoss.Storage.GetEndpoint()
 	endPoint = removeHttpPrefix(endPoint)
