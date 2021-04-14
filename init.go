@@ -15,7 +15,6 @@ import (
 	"github.com/qor/oss"
 	"github.com/qor/publish2"
 	"github.com/qor/qor"
-	"github.com/qor/roles"
 )
 
 var (
@@ -59,42 +58,21 @@ func New(adm *admin.Admin, pubS3 oss.StorageInterface, priS3 oss.StorageInterfac
 	privateS3 = priS3
 
 	inflection.AddUncountable("micro_sites")
-	inflection.AddUncountable("microsite_versions")
 	if err := os.MkdirAll("public/system/qor_jobs", os.ModePerm); err != nil && !os.IsExist(err) && !os.IsPermission(err) {
 		panic(err)
 	}
 	DB := adm.DB
 	DB.AutoMigrate(&QorMicroSite{})
-	addAdminResource(adm, "MicroSites")
-	addAdminResource(adm, "microsite_versions")
-	adm.GetMenu("microsite_versions").Permission = roles.Deny(roles.CRUD, roles.Anyone)
+	AddAdminResource(adm, "MicroSites")
+	//addAdminResource(adm, "microsite_versions")
+	//adm.GetMenu("microsite_versions").Permission = roles.Deny(roles.CRUD, roles.Anyone)
 	media.RegisterMediaHandler("unzip_package_handler", unzipPackageHandler{})
 }
 
-func addAdminResource(adm *admin.Admin, name string) {
-	res := adm.AddResource(&QorMicroSite{}, &admin.Config{Name: name})
-	if name != "microsite_versions" {
-		res.UseTheme("general_resource")
-		res.IndexAttrs("ID", "Name", "URL", "PublishedAt", "Live")
-		res.Meta(&admin.Meta{
-			Name: "Live",
-			Valuer: func(record interface{}, ctx *qor.Context) interface{} {
-				if ann, ok := record.(interface {
-					GetMicroSiteID() uint
-				}); ok {
-					var count int
-					ctx.DB.Model(&QorMicroSite{}).Set(publish2.VersionMode, publish2.VersionMultipleMode).Set(publish2.ScheduleMode, publish2.ModeOff).Where("id = ? AND status = ?", ann.GetMicroSiteID(), Status_published).Count(&count)
-					if count > 0 {
-						return template.HTML("<span class='qor-publish2__live'><span class='qor-symbol qor-symbol-blue' title='This page is live'></span></span>")
-					}
-					return ""
-				}
-				return ""
-			},
-		})
-	} else {
+func AddAdminResource(adm *admin.Admin, menuName string) *admin.Resource {
+	res := adm.AddResource(&QorMicroSite{}, &admin.Config{Name: menuName})
+	if menuName == "MicroSites" {
 		res.UseTheme("versions")
-		res.IndexAttrs("Name", "VersionName", "URL", "PublishedAt", "Status")
 	}
 
 	res.Meta(&admin.Meta{Name: "Name", Label: "Site Name"})
@@ -112,6 +90,7 @@ func addAdminResource(adm *admin.Admin, name string) {
 		},
 	})
 
+	res.IndexAttrs("Name", "VersionName", "URL", "PublishedAt", "Status")
 	res.EditAttrs("Name", "URL", "FileList", "Package")
 	res.NewAttrs(res.NewAttrs(), "-Status", "-FileList")
 
@@ -154,6 +133,7 @@ func addAdminResource(adm *admin.Admin, name string) {
 	res.OverrideIndexAttrs(func() {
 		res.IndexAttrs(res.IndexAttrs(), "-PublishLiveNow", "-ScheduledStartAt", "-ScheduledEndAt")
 	})
+	return res
 }
 
 func AutoPublishMicrosite() error {
