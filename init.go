@@ -14,6 +14,7 @@ import (
 	"github.com/qor/publish2"
 	"github.com/qor/qor"
 	"github.com/qor/qor/resource"
+	"github.com/qor/roles"
 )
 
 const (
@@ -55,8 +56,8 @@ func init() {
 
 func (site *QorMicroSite) ConfigureQorResourceBeforeInitialize(res resource.Resourcer) {
 	if res, ok := res.(*admin.Resource); ok {
-		res.Meta(&admin.Meta{Name: "Name", Label: "Site Name"})
-		res.Meta(&admin.Meta{Name: "URL", Label: "Microsite URL"})
+		res.Meta(&admin.Meta{Name: "Name", Label: "Site Name", Permission: roles.Deny(roles.Update, roles.Anyone)})
+		res.Meta(&admin.Meta{Name: "URL", Label: "Microsite URL", Permission: roles.Deny(roles.Update, roles.Anyone)})
 		res.Meta(&admin.Meta{
 			Name: "FileList",
 			Type: "readonly",
