@@ -39,20 +39,23 @@ func Republish(ctx context.Context, version QorMicroSiteInterface, printActivity
 			if err1 = tx.Save(&liveRecord).Error; err1 != nil {
 				return
 			}
+
+			if err1 = liveRecord.UnPublishCallBack(_db, liveRecord.GetMicroSiteURL()); err1 != nil {
+				return
+			}
 		}
 
 		version.SetStatus(Status_published)
-		version.SetVersionPriority(fmt.Sprintf("%v", time.Now().UTC().Format(time.RFC3339)) + "_" + version.GetVersionName())
+		version.SetVersionPriority(fmt.Sprintf("%v", time.Now().UTC().Format(time.RFC3339)))
 		if err1 = tx.Save(version).Error; err1 != nil {
 			return
 		}
 
-		if err1 = version.SitemapHandler(_db, version.GetMicroSiteURL(), Action_republish); err1 != nil {
+		if _, err1 = UnzipPkgAndUpload(version.GetMicroSitePackage().Url, version.GetMicroSiteURL()); err1 != nil {
 			return
 		}
 
-		_, err1 = UnzipPkgAndUpload(version.GetMicroSitePackage().Url, version.GetMicroSiteURL())
-		return
+		return version.PublishCallBack(_db, version.GetMicroSiteURL())
 	})
 
 	return

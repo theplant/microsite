@@ -30,16 +30,15 @@ func Unpublish(ctx context.Context, version QorMicroSiteInterface, printActivity
 			return
 		}
 
-		if err1 = version.SitemapHandler(_db, version.GetMicroSiteURL(), Action_unpublish); err1 != nil {
+		objs, err1 := oss.Storage.List(version.GetMicroSiteURL())
+		if err1 != nil {
 			return
 		}
-
-		objs, err1 := oss.Storage.List(version.GetMicroSiteURL())
 		for _, o := range objs {
 			oss.Storage.Delete(o.Path)
 		}
 
-		return
+		return version.UnPublishCallBack(_db, version.GetMicroSiteURL())
 
 	})
 

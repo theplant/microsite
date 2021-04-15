@@ -22,8 +22,8 @@ type QorMicroSiteInterface interface {
 	SetStatus(string)
 	TableName() string
 	GetCreatedAt() time.Time
-	ValidatorHandler(db *gorm.DB, sitePath string) error
-	SitemapHandler(db *gorm.DB, sitePath, actionName string) error
+	PublishCallBack(db *gorm.DB, sitePath string) error
+	UnPublishCallBack(db *gorm.DB, sitePath string) error
 }
 
 // QorMicroSite default qor microsite setting struct
@@ -82,22 +82,12 @@ func (site *QorMicroSite) SetStatus(status string) {
 	site.Status = status
 }
 
-func (site QorMicroSite) ValidatorHandler(db *gorm.DB, sitePath string) error {
+func (site QorMicroSite) PublishCallBack(db *gorm.DB, sitePath string) error {
 	return nil
 }
 
-func (site QorMicroSite) SitemapHandler(db *gorm.DB, sitePath, actionName string) error {
+func (site QorMicroSite) UnPublishCallBack(db *gorm.DB, sitePath string) error {
 	return nil
-}
-
-func (site QorMicroSite) PublishCallback(tx *gorm.DB, ctx context.Context) (err error) {
-	return
-}
-
-func (site *QorMicroSite) BeforeSave(db *gorm.DB) {
-	if err := site.ValidatorHandler(db, site.URL); err != nil {
-		db.AddError(err)
-	}
 }
 
 func (site *QorMicroSite) BeforeCreate(db *gorm.DB) (err error) {
