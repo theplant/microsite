@@ -32,6 +32,7 @@ type QorMicroSite struct {
 
 	publish2.Version
 	publish2.Schedule
+	publish2.Visible
 
 	Name    string
 	URL     string

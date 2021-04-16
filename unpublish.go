@@ -8,12 +8,11 @@ import (
 
 	"github.com/jinzhu/gorm"
 	"github.com/qor/media/oss"
-	"github.com/theplant/appkit/db"
 	"github.com/theplant/gormutils"
 )
 
 func Unpublish(ctx context.Context, version QorMicroSiteInterface, printActivityLog bool) (err error) {
-	_db := db.MustGetGorm(ctx)
+	_db := ctx.Value("DB").(*gorm.DB)
 	tableName := _db.NewScope(version).TableName()
 
 	err = gormutils.Transact(_db, func(tx *gorm.DB) (err1 error) {
