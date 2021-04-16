@@ -3,6 +3,7 @@ package microsite
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"strings"
 	"time"
 
@@ -24,13 +25,11 @@ func Publish(ctx context.Context, version QorMicroSiteInterface, printActivityLo
 			}
 		}()
 
-		var liveRecord QorMicroSite
-		scope := tx.Set(publish2.VersionMode, publish2.VersionMultipleMode).Set(publish2.ScheduleMode, publish2.ModeOff).Where("id = ? AND status = ?", version.GetId(), Status_published)
-		if version.GetVersionName() != "" {
-			scope = scope.Where("version_name <> ?", version.GetVersionName())
-		}
-		scope.First(&liveRecord)
-
+		iRecord := reflect.New(reflect.TypeOf(version).Elem()).Interface()
+		admDB.Set(publish2.VersionMode, publish2.VersionMultipleMode).Set(publish2.ScheduleMode, publish2.ModeOff).
+			Where("id = ? AND status = ?", version.GetId(), Status_published).Where("version_name <> ?", version.GetVersionName()).
+			First(iRecord)
+		liveRecord := iRecord.(QorMicroSiteInterface)
 		if liveRecord.GetId() != 0 {
 			objs, _ := oss.Storage.List(liveRecord.GetMicroSiteURL())
 			for _, o := range objs {
@@ -39,7 +38,11 @@ func Publish(ctx context.Context, version QorMicroSiteInterface, printActivityLo
 
 			liveRecord.SetStatus(Status_unpublished)
 			liveRecord.SetVersionPriority(fmt.Sprintf("%v", liveRecord.GetCreatedAt().UTC().Format(time.RFC3339)))
-			if err1 = tx.Save(&liveRecord).Error; err1 != nil {
+			if err1 = tx.Save(liveRecord).Error; err1 != nil {
+				return
+			}
+
+			if err1 = liveRecord.UnPublishCallBack(_db, liveRecord.GetMicroSiteURL()); err1 != nil {
 				return
 			}
 		}

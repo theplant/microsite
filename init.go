@@ -45,6 +45,7 @@ var changeStatusActionMap = map[string]string{
 	Action_publish:        "Published",
 	Action_republish:      "Unpublished",
 }
+var admDB *gorm.DB
 
 func init() {
 	if err := os.MkdirAll("public/system/qor_jobs", os.ModePerm); err != nil && !os.IsExist(err) && !os.IsPermission(err) {
@@ -56,6 +57,10 @@ func init() {
 
 func (site *QorMicroSite) ConfigureQorResourceBeforeInitialize(res resource.Resourcer) {
 	if res, ok := res.(*admin.Resource); ok {
+		if admDB == nil {
+			admDB = res.GetAdmin().DB
+		}
+
 		res.Meta(&admin.Meta{Name: "Name", Label: "Site Name", Permission: roles.Deny(roles.Update, roles.Anyone)})
 		res.Meta(&admin.Meta{Name: "URL", Label: "Microsite URL", Permission: roles.Deny(roles.Update, roles.Anyone)})
 		res.Meta(&admin.Meta{
