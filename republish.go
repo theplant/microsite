@@ -30,9 +30,8 @@ func Republish(ctx context.Context, version QorMicroSiteInterface, printActivity
 			Where("id = ? AND status = ?", version.GetId(), Status_published).First(iRecord)
 		liveRecord := iRecord.(QorMicroSiteInterface)
 		if liveRecord.GetId() != 0 {
-			objs, _ := oss.Storage.List(liveRecord.GetMicroSiteURL())
-			for _, o := range objs {
-				oss.Storage.Delete(o.Path)
+			for _, o := range liveRecord.GetFilesPathWithSiteURL() {
+				oss.Storage.Delete(o)
 			}
 
 			liveRecord.SetStatus(Status_unpublished)

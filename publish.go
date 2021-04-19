@@ -31,9 +31,8 @@ func Publish(ctx context.Context, version QorMicroSiteInterface, printActivityLo
 			First(iRecord)
 		liveRecord := iRecord.(QorMicroSiteInterface)
 		if liveRecord.GetId() != 0 {
-			objs, _ := oss.Storage.List(liveRecord.GetMicroSiteURL())
-			for _, o := range objs {
-				oss.Storage.Delete(o.Path)
+			for _, o := range liveRecord.GetFilesPathWithSiteURL() {
+				oss.Storage.Delete(o)
 			}
 
 			liveRecord.SetStatus(Status_unpublished)

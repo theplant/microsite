@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"html/template"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/jinzhu/gorm"
@@ -69,7 +68,7 @@ func (site *QorMicroSite) ConfigureQorResourceBeforeInitialize(res resource.Reso
 			Valuer: func(value interface{}, ctx *qor.Context) interface{} {
 				this := value.(QorMicroSiteInterface)
 				var result string
-				for _, v := range strings.Split(this.GetFileList(), ",") {
+				for _, v := range this.GetFileList() {
 					result += fmt.Sprintf(`<a href="%v" target="_blank"> %v </a><br>`, this.GetPreviewURL()+"/"+v, v)
 				}
 				return template.HTML(result)

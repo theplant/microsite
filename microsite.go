@@ -3,6 +3,8 @@ package microsite
 import (
 	"context"
 	"fmt"
+	"path"
+	"strings"
 	"time"
 
 	"github.com/jinzhu/gorm"
@@ -14,7 +16,8 @@ type QorMicroSiteInterface interface {
 	GetId() uint
 	GetMicroSiteURL() string
 	GetMicroSitePackage() *Package
-	GetFileList() string
+	GetFileList() []string
+	GetFilesPathWithSiteURL() []string
 	GetPreviewURL() string
 	GetVersionName() string
 	SetVersionPriority(string)
@@ -45,8 +48,15 @@ func (site QorMicroSite) GetId() uint {
 	return site.ID
 }
 
-func (site QorMicroSite) GetFileList() string {
-	return site.Package.Options["file_list"]
+func (site QorMicroSite) GetFileList() (arr []string) {
+	return strings.Split(site.Package.Options["file_list"], ",")
+}
+
+func (site QorMicroSite) GetFilesPathWithSiteURL() (arr []string) {
+	for _, v := range site.GetFileList() {
+		arr = append(arr, path.Join(site.GetMicroSiteURL(), v))
+	}
+	return
 }
 
 // GetMicroSiteURL will return a site's URL
@@ -68,7 +78,7 @@ func (site QorMicroSite) GetVersionName() string {
 }
 
 func (site *QorMicroSite) SetVersionPriority(versionPriority string) {
-	return
+	site.VersionPriority = versionPriority
 }
 
 func (site QorMicroSite) GetCreatedAt() time.Time {

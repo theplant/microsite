@@ -29,12 +29,8 @@ func Unpublish(ctx context.Context, version QorMicroSiteInterface, printActivity
 			return
 		}
 
-		objs, err1 := oss.Storage.List(version.GetMicroSiteURL())
-		if err1 != nil {
-			return
-		}
-		for _, o := range objs {
-			oss.Storage.Delete(o.Path)
+		for _, o := range version.GetFilesPathWithSiteURL() {
+			oss.Storage.Delete(o)
 		}
 
 		return version.UnPublishCallBack(_db, version.GetMicroSiteURL())
