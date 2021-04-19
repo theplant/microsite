@@ -36,7 +36,6 @@ func Publish(ctx context.Context, version QorMicroSiteInterface, printActivityLo
 			}
 
 			liveRecord.SetStatus(Status_unpublished)
-			liveRecord.SetVersionPriority(fmt.Sprintf("%v", liveRecord.GetCreatedAt().UTC().Format(time.RFC3339)))
 			if err1 = tx.Save(liveRecord).Error; err1 != nil {
 				return
 			}

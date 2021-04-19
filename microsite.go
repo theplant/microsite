@@ -108,6 +108,15 @@ func (site *QorMicroSite) BeforeCreate(db *gorm.DB) (err error) {
 	return nil
 }
 
+func (site *QorMicroSite) BeforeUpdate(db *gorm.DB) (err error) {
+	if site.Status == Status_published {
+		site.VersionPriority = fmt.Sprintf("%v", gorm.NowFunc().UTC().Format(time.RFC3339))
+	} else {
+		site.VersionPriority = fmt.Sprintf("%v", site.CreatedAt.UTC().Format(time.RFC3339))
+	}
+	return nil
+}
+
 func (this *QorMicroSite) BeforeDelete(db *gorm.DB) (err error) {
 	if this.Status == Status_published {
 		err = Unpublish(context.TODO(), this, false)

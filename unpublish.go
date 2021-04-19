@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/jinzhu/gorm"
 	"github.com/qor/media/oss"
@@ -24,7 +23,6 @@ func Unpublish(ctx context.Context, version QorMicroSiteInterface, printActivity
 		}()
 
 		version.SetStatus(Status_unpublished)
-		version.SetVersionPriority(fmt.Sprintf("%v", version.GetCreatedAt().UTC().Format(time.RFC3339)))
 		if err1 = tx.Save(version).Error; err1 != nil {
 			return
 		}
