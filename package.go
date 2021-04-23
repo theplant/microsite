@@ -145,9 +145,11 @@ func getFile(path string) (file *os.File, err error) {
 	readCloser, err := mediaoss.Storage.GetStream(path)
 	ext := filepath.Ext(path)
 	pattern := fmt.Sprintf("s3*%s", ext)
-
+	if _, _err := os.Stat(TempDir); TempDir != "" && os.IsNotExist(_err) {
+		err = os.MkdirAll(TempDir, os.ModePerm)
+	}
 	if err == nil {
-		if file, err = ioutil.TempFile("public/system/qor_jobs", pattern); err == nil {
+		if file, err = ioutil.TempFile(TempDir, pattern); err == nil {
 			defer readCloser.Close()
 			_, err = io.Copy(file, readCloser)
 			file.Seek(0, 0)

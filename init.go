@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"html/template"
-	"os"
 	"time"
 
 	"github.com/jinzhu/gorm"
@@ -45,12 +44,9 @@ var changeStatusActionMap = map[string]string{
 	Action_republish:      "Unpublished",
 }
 var admDB *gorm.DB
+var TempDir string = "public/system/qor_jobs"
 
 func init() {
-	if err := os.MkdirAll("public/system/qor_jobs", os.ModePerm); err != nil && !os.IsExist(err) && !os.IsPermission(err) {
-		panic(err)
-	}
-
 	media.RegisterMediaHandler("unzip_package_handler", unzipPackageHandler{})
 }
 
