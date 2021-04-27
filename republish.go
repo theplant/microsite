@@ -3,18 +3,18 @@ package microsite
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"strings"
 	"time"
 
 	"github.com/jinzhu/gorm"
 	"github.com/qor/media/oss"
 	"github.com/qor/publish2"
-	"github.com/theplant/appkit/db"
 	"github.com/theplant/gormutils"
 )
 
 func Republish(ctx context.Context, version QorMicroSiteInterface, printActivityLog bool) (err error) {
-	_db := db.MustGetGorm(ctx)
+	_db := ctx.Value("DB").(*gorm.DB)
 	tableName := _db.NewScope(version).TableName()
 
 	err = gormutils.Transact(_db, func(tx *gorm.DB) (err1 error) {
@@ -25,33 +25,40 @@ func Republish(ctx context.Context, version QorMicroSiteInterface, printActivity
 			}
 		}()
 
-		var liveRecord QorMicroSite
-		tx.Set(publish2.VersionMode, publish2.VersionMultipleMode).Set(publish2.ScheduleMode, publish2.ModeOff).Where("id = ? AND status = ?", version.GetId(), Status_published).First(&liveRecord)
-
+		iRecord := reflect.New(reflect.TypeOf(version).Elem()).Interface()
+		admDB.Set(publish2.VersionMode, publish2.VersionMultipleMode).Set(publish2.ScheduleMode, publish2.ModeOff).
+			Where("id = ? AND status = ?", version.GetId(), Status_published).First(iRecord)
+		liveRecord := iRecord.(QorMicroSiteInterface)
 		if liveRecord.GetId() != 0 {
-			objs, _ := oss.Storage.List(liveRecord.GetMicroSiteURL())
-			for _, o := range objs {
-				oss.Storage.Delete(o.Path)
+			for _, o := range liveRecord.GetFilesPathWithSiteURL() {
+				oss.Storage.Delete(o)
 			}
 
 			liveRecord.SetStatus(Status_unpublished)
-			liveRecord.SetVersionPriority(fmt.Sprintf("%v", liveRecord.GetCreatedAt().UTC().Format(time.RFC3339)))
-			if err1 = tx.Save(&liveRecord).Error; err1 != nil {
+			if err1 = tx.Save(liveRecord).Error; err1 != nil {
 				return
+			}
+
+			if liveRecord.GetVersionName() != version.GetVersionName() {
+				if err1 = liveRecord.UnPublishCallBack(_db, liveRecord.GetMicroSiteURL()); err1 != nil {
+					return
+				}
 			}
 		}
 
 		version.SetStatus(Status_published)
-		version.SetVersionPriority(fmt.Sprintf("%v", time.Now().UTC().Format(time.RFC3339)) + "_" + version.GetVersionName())
+		version.SetVersionPriority(fmt.Sprintf("%v", time.Now().UTC().Format(time.RFC3339)))
 		if err1 = tx.Save(version).Error; err1 != nil {
 			return
 		}
 
-		if err1 = version.SitemapHandler(_db, version.GetMicroSiteURL(), Action_republish); err1 != nil {
+		if _, err1 = UnzipPkgAndUpload(version.GetMicroSitePackage().Url, version.GetMicroSiteURL()); err1 != nil {
 			return
 		}
 
-		_, err1 = UnzipPkgAndUpload(version.GetMicroSitePackage().Url, version.GetMicroSiteURL())
+		if liveRecord.GetVersionName() != version.GetVersionName() {
+			err1 = version.PublishCallBack(_db, version.GetMicroSiteURL())
+		}
 		return
 	})
 

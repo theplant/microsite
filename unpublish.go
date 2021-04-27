@@ -4,16 +4,14 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/jinzhu/gorm"
 	"github.com/qor/media/oss"
-	"github.com/theplant/appkit/db"
 	"github.com/theplant/gormutils"
 )
 
 func Unpublish(ctx context.Context, version QorMicroSiteInterface, printActivityLog bool) (err error) {
-	_db := db.MustGetGorm(ctx)
+	_db := ctx.Value("DB").(*gorm.DB)
 	tableName := _db.NewScope(version).TableName()
 
 	err = gormutils.Transact(_db, func(tx *gorm.DB) (err1 error) {
@@ -25,21 +23,15 @@ func Unpublish(ctx context.Context, version QorMicroSiteInterface, printActivity
 		}()
 
 		version.SetStatus(Status_unpublished)
-		version.SetVersionPriority(fmt.Sprintf("%v", version.GetCreatedAt().UTC().Format(time.RFC3339)))
 		if err1 = tx.Save(version).Error; err1 != nil {
 			return
 		}
 
-		if err1 = version.SitemapHandler(_db, version.GetMicroSiteURL(), Action_unpublish); err1 != nil {
-			return
+		for _, o := range version.GetFilesPathWithSiteURL() {
+			oss.Storage.Delete(o)
 		}
 
-		objs, err1 := oss.Storage.List(version.GetMicroSiteURL())
-		for _, o := range objs {
-			oss.Storage.Delete(o.Path)
-		}
-
-		return
+		return version.UnPublishCallBack(_db, version.GetMicroSiteURL())
 
 	})
 

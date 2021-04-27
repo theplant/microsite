@@ -1,6 +1,7 @@
 package microsite
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/qor/admin"
@@ -9,7 +10,7 @@ import (
 func ChangeStatus(argument *admin.ActionArgument, action string) (err error) {
 	ctx := argument.Context.Request.Context()
 	db := argument.Context.DB
-
+	ctx = context.WithValue(ctx, "DB", db)
 	for _, record := range argument.FindSelectedRecords() {
 		if version, ok := record.(QorMicroSiteInterface); ok {
 			argument.Context.Result = version
