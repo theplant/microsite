@@ -2,6 +2,7 @@ package microsite
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -26,10 +27,17 @@ func Publish(ctx context.Context, version QorMicroSiteInterface, printActivityLo
 		}()
 
 		iRecord := reflect.New(reflect.TypeOf(version).Elem()).Interface()
-		admDB.Set(publish2.VersionMode, publish2.VersionMultipleMode).Set(publish2.ScheduleMode, publish2.ModeOff).
+		if err1 = admDB.Set(publish2.VersionMode, publish2.VersionMultipleMode).Set(publish2.ScheduleMode, publish2.ModeOff).
 			Where("id = ? AND status = ?", version.GetId(), Status_published).Where("version_name <> ?", version.GetVersionName()).
-			First(iRecord)
-		liveRecord := iRecord.(QorMicroSiteInterface)
+			First(iRecord).Error; err1 != nil {
+			return
+		}
+
+		liveRecord, ok := iRecord.(QorMicroSiteInterface)
+		if !ok {
+			return errors.New("given record doesn't implement QorMicroSiteInterface")
+		}
+
 		if liveRecord.GetId() != 0 {
 			for _, o := range liveRecord.GetFilesPathWithSiteURL() {
 				oss.Storage.Delete(o)
