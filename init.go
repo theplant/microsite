@@ -62,10 +62,10 @@ func (site *QorMicroSite) ConfigureQorResourceBeforeInitialize(res resource.Reso
 			Name: "FileList",
 			Type: "readonly",
 			Valuer: func(value interface{}, ctx *qor.Context) interface{} {
-				this := value.(QorMicroSiteInterface)
+				site := value.(QorMicroSiteInterface)
 				var result string
-				for _, v := range this.GetFileList() {
-					result += fmt.Sprintf(`<a href="%v" target="_blank"> %v </a><br>`, this.GetPreviewURL()+"/"+v, v)
+				for _, v := range site.GetFileList() {
+					result += fmt.Sprintf(`<a href="%v" target="_blank"> %v </a><br>`, site.GetPreviewURL()+"/"+v, v)
 				}
 				return template.HTML(result)
 			},
@@ -78,8 +78,8 @@ func (site *QorMicroSite) ConfigureQorResourceBeforeInitialize(res resource.Reso
 		res.Action(&admin.Action{
 			Name: "Preview",
 			URL: func(record interface{}, context *admin.Context) string {
-				this := record.(QorMicroSiteInterface)
-				return this.GetPreviewURL()
+				site := record.(QorMicroSiteInterface)
+				return site.GetPreviewURL()
 			},
 			URLOpenType: "_blank",
 			Modes:       []string{"show", "edit"},

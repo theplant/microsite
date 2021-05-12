@@ -117,9 +117,9 @@ func (site *QorMicroSite) BeforeUpdate(db *gorm.DB) (err error) {
 	return nil
 }
 
-func (this *QorMicroSite) BeforeDelete(db *gorm.DB) (err error) {
-	if this.Status == Status_published {
-		err = Unpublish(context.TODO(), this, false)
+func (site *QorMicroSite) BeforeDelete(db *gorm.DB) (err error) {
+	if site.Status == Status_published {
+		err = Unpublish(context.TODO(), site, false)
 		return
 	}
 	return
