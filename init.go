@@ -35,16 +35,20 @@ const (
 	Status_unpublished = "Unpublished"
 )
 
-var changeStatusActionMap = map[string]string{
-	Action_request_review: "Review",
-	Action_approve:        "Approved",
-	Action_return:         "Returned",
-	Action_unpublish:      "Unpublished",
-	Action_publish:        "Published",
-	Action_republish:      "Unpublished",
-}
-var admDB *gorm.DB
-var TempDir string = "public/system/qor_jobs"
+var (
+	//default value os.TempDir()
+	TempDir string
+	admDB   *gorm.DB
+
+	changeStatusActionMap = map[string]string{
+		Action_request_review: "Review",
+		Action_approve:        "Approved",
+		Action_return:         "Returned",
+		Action_unpublish:      "Unpublished",
+		Action_publish:        "Published",
+		Action_republish:      "Unpublished",
+	}
+)
 
 func init() {
 	media.RegisterMediaHandler("unzip_package_handler", unzipPackageHandler{})
