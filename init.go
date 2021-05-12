@@ -1,15 +1,12 @@
 package microsite
 
 import (
-	"context"
 	"fmt"
 	"html/template"
-	"time"
 
 	"github.com/jinzhu/gorm"
 	"github.com/qor/admin"
 	"github.com/qor/media"
-	"github.com/qor/publish2"
 	"github.com/qor/qor"
 	"github.com/qor/qor/resource"
 	"github.com/qor/roles"
@@ -19,18 +16,12 @@ const (
 	ZIP_PACKAGE_DIR = "microsite/zips/"
 	FILE_LIST_DIR   = "microsite/"
 
-	Action_preview        = "preview"
-	Action_request_review = "request review"
-	Action_approve        = "approve"
-	Action_return         = "return"
-	Action_publish        = "publish"
-	Action_republish      = "republish"
-	Action_unpublish      = "unpublish"
+	Action_preview   = "preview"
+	Action_publish   = "publish"
+	Action_republish = "republish"
+	Action_unpublish = "unpublish"
 
 	Status_draft       = "Draft"
-	Status_review      = "Review"
-	Status_approved    = "Approved"
-	Status_returned    = "Returned"
 	Status_published   = "Published"
 	Status_unpublished = "Unpublished"
 )
@@ -41,12 +32,9 @@ var (
 	admDB   *gorm.DB
 
 	changeStatusActionMap = map[string]string{
-		Action_request_review: "Review",
-		Action_approve:        "Approved",
-		Action_return:         "Returned",
-		Action_unpublish:      "Unpublished",
-		Action_publish:        "Published",
-		Action_republish:      "Unpublished",
+		Action_unpublish: "Unpublished",
+		Action_publish:   "Published",
+		Action_republish: "Unpublished",
 	}
 )
 
@@ -116,16 +104,4 @@ func (site *QorMicroSite) ConfigureQorResourceBeforeInitialize(res resource.Reso
 			Modes: []string{"edit"},
 		})
 	}
-}
-
-func AutoPublishMicrosite(db *gorm.DB) error {
-	ctx := context.TODO()
-	sites := []QorMicroSite{}
-	db.Set(publish2.VersionMode, publish2.VersionMultipleMode).Set(publish2.ScheduleMode, publish2.ModeOff).Where("status = ? AND scheduled_start_at <= ?", Status_approved, gorm.NowFunc().Add(time.Minute)).Find(&sites)
-	for _, version := range sites {
-		if err := Publish(ctx, &version, true); err != nil {
-			return err
-		}
-	}
-	return nil
 }
