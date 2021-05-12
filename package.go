@@ -14,18 +14,12 @@ import (
 
 	"github.com/qor/media"
 	mediaoss "github.com/qor/media/oss"
-	"github.com/qor/oss"
 	"github.com/qor/qor/utils"
 )
 
 // Package microsite's packages struct
 type Package struct {
 	mediaoss.OSS
-}
-
-// ListObjects list all objects under current path
-func (pkg Package) ListObjects() ([]*oss.Object, error) {
-	return mediaoss.Storage.List(filepath.Dir(pkg.URL()))
 }
 
 func (site QorMicroSite) GetPreviewURL() string {
@@ -51,8 +45,8 @@ func (packageHandler unzipPackageHandler) CouldHandle(media media.Media) bool {
 }
 
 /*
-the path of package: /privates3/microsite/zips/id/version/
-the path of files: 	 /privates3/microsite/id/version/
+default path of package: S3Bucket/microsite/zips/id/version/
+default path of files: 	 S3Bucket/microsite/id/version/
 */
 func (packageHandler unzipPackageHandler) Handle(media media.Media, file media.FileInterface, option *media.Option) (err error) {
 	if pkg, ok := media.(*Package); ok && file != nil {
