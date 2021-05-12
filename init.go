@@ -1,15 +1,12 @@
 package microsite
 
 import (
-	"context"
 	"fmt"
 	"html/template"
-	"time"
 
 	"github.com/jinzhu/gorm"
 	"github.com/qor/admin"
 	"github.com/qor/media"
-	"github.com/qor/publish2"
 	"github.com/qor/qor"
 	"github.com/qor/qor/resource"
 	"github.com/qor/roles"
@@ -112,16 +109,4 @@ func (site *QorMicroSite) ConfigureQorResourceBeforeInitialize(res resource.Reso
 			Modes: []string{"edit"},
 		})
 	}
-}
-
-func AutoPublishMicrosite(db *gorm.DB) error {
-	ctx := context.TODO()
-	sites := []QorMicroSite{}
-	db.Set(publish2.VersionMode, publish2.VersionMultipleMode).Set(publish2.ScheduleMode, publish2.ModeOff).Where("status = ? AND scheduled_start_at <= ?", Status_approved, gorm.NowFunc().Add(time.Minute)).Find(&sites)
-	for _, version := range sites {
-		if err := Publish(ctx, &version, true); err != nil {
-			return err
-		}
-	}
-	return nil
 }
