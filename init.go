@@ -7,6 +7,7 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/qor/admin"
 	"github.com/qor/media"
+	"github.com/qor/publish2"
 	"github.com/qor/qor"
 	"github.com/qor/qor/resource"
 	"github.com/qor/roles"
@@ -43,7 +44,13 @@ var changeStatusActionMap = map[string]string{
 var admDB *gorm.DB
 var TempDir string = "public/system/qor_jobs"
 
-func init() {
+func Init(adm *admin.Admin, siteStruct QorMicroSiteInterface) {
+	db := adm.DB
+	db.AutoMigrate(siteStruct)
+	adm.AddResource(siteStruct, &admin.Config{Name: "MicroSites"})
+
+	publish2.RegisterCallbacks(db)
+	media.RegisterCallbacks(db)
 	media.RegisterMediaHandler("unzip_package_handler", unzipPackageHandler{})
 }
 
