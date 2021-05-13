@@ -14,18 +14,12 @@ import (
 
 	"github.com/qor/media"
 	mediaoss "github.com/qor/media/oss"
-	"github.com/qor/oss"
 	"github.com/qor/qor/utils"
 )
 
 // Package microsite's packages struct
 type Package struct {
 	mediaoss.OSS
-}
-
-// ListObjects list all objects under current path
-func (pkg Package) ListObjects() ([]*oss.Object, error) {
-	return mediaoss.Storage.List(filepath.Dir(pkg.URL()))
 }
 
 func (site QorMicroSite) GetPreviewURL() string {
@@ -51,8 +45,8 @@ func (packageHandler unzipPackageHandler) CouldHandle(media media.Media) bool {
 }
 
 /*
-the path of package: /privates3/microsite/zips/id/version/
-the path of files: 	 /privates3/microsite/id/version/
+default path of package: S3Bucket/microsite/zips/id/version/
+default path of files: 	 S3Bucket/microsite/id/version/
 */
 func (packageHandler unzipPackageHandler) Handle(media media.Media, file media.FileInterface, option *media.Option) (err error) {
 	if pkg, ok := media.(*Package); ok && file != nil {
@@ -71,15 +65,15 @@ func (packageHandler unzipPackageHandler) Handle(media media.Media, file media.F
 
 func UnzipPkgAndUpload(pkgURL, dest string) (files string, err error) {
 	baseName := strings.TrimSuffix(filepath.Base(pkgURL), filepath.Ext(pkgURL))
-	file, err := getFile(pkgURL)
+	fileName, err := getFileLocalName(pkgURL)
 	if err != nil {
 		return files, err
 	}
 
-	if filepath.Ext(file.Name()) != "" {
-		defer os.Remove(file.Name())
+	if filepath.Ext(fileName) != "" {
+		defer os.Remove(fileName)
 	}
-	reader, err := zip.OpenReader(file.Name())
+	reader, err := zip.OpenReader(fileName)
 	if err != nil {
 		return files, err
 	}
@@ -140,23 +134,36 @@ func UnzipPkgAndUpload(pkgURL, dest string) (files string, err error) {
 	return strings.Join(arr, ","), nil
 }
 
-//create tempFile at locale
-func getFile(path string) (file *os.File, err error) {
+//create tempFile at locale and return its name
+func getFileLocalName(path string) (fileName string, err error) {
 	readCloser, err := mediaoss.Storage.GetStream(path)
+	if err != nil {
+		return
+	}
+	defer readCloser.Close()
+
 	ext := filepath.Ext(path)
 	pattern := fmt.Sprintf("s3*%s", ext)
 	if _, _err := os.Stat(TempDir); TempDir != "" && os.IsNotExist(_err) {
-		err = os.MkdirAll(TempDir, os.ModePerm)
-	}
-	if err == nil {
-		if file, err = ioutil.TempFile(TempDir, pattern); err == nil {
-			defer readCloser.Close()
-			_, err = io.Copy(file, readCloser)
-			file.Seek(0, 0)
+		if err = os.MkdirAll(TempDir, os.ModePerm); err != nil {
+			return
 		}
 	}
+	var file *os.File
+	if file, err = ioutil.TempFile(TempDir, pattern); err != nil {
+		return
+	}
+	defer file.Close()
 
-	return file, err
+	if _, err = io.Copy(file, readCloser); err != nil {
+		return
+	}
+
+	if _, err = file.Seek(0, 0); err != nil {
+		return
+	}
+
+	return file.Name(), err
 }
 
 func removeHttpPrefix(endPoint string) string {
