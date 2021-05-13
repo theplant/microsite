@@ -7,7 +7,7 @@ import (
 	"github.com/qor/publish2"
 )
 
-func AutoPublishMicrosite(db *gorm.DB, readyForPublishStatus string) error {
+func TobePublishedMicrosites(db *gorm.DB, readyForPublishStatus string) error {
 	ctx := context.TODO()
 	sites, err := GetSites(db, readyForPublishStatus)
 	if err != nil {
@@ -22,7 +22,7 @@ func AutoPublishMicrosite(db *gorm.DB, readyForPublishStatus string) error {
 	return nil
 }
 
-func AutoUnpublishMicrosite(db *gorm.DB, unPublishStatus string) error {
+func TobeUnpublishedMicrosite(db *gorm.DB, unPublishStatus string) error {
 	ctx := context.TODO()
 	sites, err := GetSites(db, unPublishStatus)
 	if err != nil {
