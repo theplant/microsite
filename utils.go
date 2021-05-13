@@ -9,10 +9,8 @@ import (
 
 func AutoPublishMicrosite(db *gorm.DB, readyForPublishStatus string) error {
 	ctx := context.TODO()
-	sites := []QorMicroSite{}
-
-	if err := db.Set(publish2.VersionMode, publish2.VersionMultipleMode).Set(publish2.ScheduleMode, publish2.ComingOnlineMode).
-		Where("status = ?", readyForPublishStatus).Find(&sites).Error; err != nil {
+	sites, err := GetSites(db, readyForPublishStatus)
+	if err != nil {
 		return err
 	}
 
@@ -26,10 +24,8 @@ func AutoPublishMicrosite(db *gorm.DB, readyForPublishStatus string) error {
 
 func AutoUnpublishMicrosite(db *gorm.DB, unPublishStatus string) error {
 	ctx := context.TODO()
-	sites := []QorMicroSite{}
-
-	if err := db.Set(publish2.VersionMode, publish2.VersionMultipleMode).Set(publish2.ScheduleMode, publish2.GoingOfflineMode).
-		Where("status = ?", unPublishStatus).Find(&sites).Error; err != nil {
+	sites, err := GetSites(db, unPublishStatus)
+	if err != nil {
 		return err
 	}
 
@@ -39,4 +35,14 @@ func AutoUnpublishMicrosite(db *gorm.DB, unPublishStatus string) error {
 		}
 	}
 	return nil
+}
+
+func GetSites(db *gorm.DB, targetStatus string) ([]QorMicroSite, error) {
+	sites := []QorMicroSite{}
+
+	if err := db.Set(publish2.VersionMode, publish2.VersionMultipleMode).Where("status = ?", targetStatus).Find(&sites).Error; err != nil {
+		return []QorMicroSite{}, err
+	}
+
+	return sites, nil
 }

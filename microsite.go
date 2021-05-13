@@ -2,6 +2,7 @@ package microsite
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"path"
 	"strings"
@@ -35,12 +36,23 @@ type QorMicroSite struct {
 
 	publish2.Version
 	publish2.Schedule
-	publish2.Visible
 
 	Name    string
 	URL     string
 	Status  string
 	Package Package `gorm:"size:65536" media_library:"url:/microsite/zips/{{primary_key}}/{{short_hash}}/{{filename}}"`
+}
+
+func (site *QorMicroSite) BeforeSave(db *gorm.DB) (err error) {
+	if site.Name == "" {
+		return errors.New("name cannot be blank")
+	}
+
+	if site.URL == "" {
+		return errors.New("URL cannot be blank")
+	}
+
+	return nil
 }
 
 // GetMicroSiteID will return a site's ID
@@ -117,9 +129,9 @@ func (site *QorMicroSite) BeforeUpdate(db *gorm.DB) (err error) {
 	return nil
 }
 
-func (this *QorMicroSite) BeforeDelete(db *gorm.DB) (err error) {
-	if this.Status == Status_published {
-		err = Unpublish(context.TODO(), this, false)
+func (site *QorMicroSite) BeforeDelete(db *gorm.DB) (err error) {
+	if site.Status == Status_published {
+		err = Unpublish(context.TODO(), site, false)
 		return
 	}
 	return
