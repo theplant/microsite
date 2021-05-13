@@ -1,7 +1,6 @@
 package microsite
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"path"
@@ -131,8 +130,9 @@ func (site *QorMicroSite) BeforeUpdate(db *gorm.DB) (err error) {
 
 func (site *QorMicroSite) BeforeDelete(db *gorm.DB) (err error) {
 	if site.Status == Status_published {
-		err = Unpublish(context.TODO(), site, false)
+		err = Unpublish(db, site, false)
 		return
 	}
+
 	return
 }

@@ -1,7 +1,6 @@
 package microsite
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
@@ -10,11 +9,10 @@ import (
 	"github.com/theplant/gormutils"
 )
 
-func Unpublish(ctx context.Context, version QorMicroSiteInterface, printActivityLog bool) (err error) {
-	_db := ctx.Value("DB").(*gorm.DB)
-	tableName := _db.NewScope(version).TableName()
+func Unpublish(db *gorm.DB, version QorMicroSiteInterface, printActivityLog bool) (err error) {
+	tableName := db.NewScope(version).TableName()
 
-	err = gormutils.Transact(_db, func(tx *gorm.DB) (err1 error) {
+	err = gormutils.Transact(db, func(tx *gorm.DB) (err1 error) {
 		defer func() {
 			if err1 != nil {
 				eventType := fmt.Sprintf("%s:UnpublishingError", strings.Title(tableName))
@@ -31,7 +29,7 @@ func Unpublish(ctx context.Context, version QorMicroSiteInterface, printActivity
 			oss.Storage.Delete(o)
 		}
 
-		return version.UnPublishCallBack(_db, version.GetMicroSiteURL())
+		return version.UnPublishCallBack(db, version.GetMicroSiteURL())
 
 	})
 

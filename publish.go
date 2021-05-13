@@ -1,7 +1,6 @@
 package microsite
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"reflect"
@@ -14,11 +13,10 @@ import (
 	"github.com/theplant/gormutils"
 )
 
-func Publish(ctx context.Context, version QorMicroSiteInterface, printActivityLog bool) (err error) {
-	_db := ctx.Value("DB").(*gorm.DB)
-	tableName := _db.NewScope(version).TableName()
+func Publish(db *gorm.DB, version QorMicroSiteInterface, printActivityLog bool) (err error) {
+	tableName := db.NewScope(version).TableName()
 
-	err = gormutils.Transact(_db, func(tx *gorm.DB) (err1 error) {
+	err = gormutils.Transact(db, func(tx *gorm.DB) (err1 error) {
 		defer func() {
 			if err1 != nil {
 				eventType := fmt.Sprintf("%s:PublishingError", strings.Title(tableName))
@@ -48,7 +46,7 @@ func Publish(ctx context.Context, version QorMicroSiteInterface, printActivityLo
 				return
 			}
 
-			if err1 = liveRecord.UnPublishCallBack(_db, liveRecord.GetMicroSiteURL()); err1 != nil {
+			if err1 = liveRecord.UnPublishCallBack(db, liveRecord.GetMicroSiteURL()); err1 != nil {
 				return
 			}
 		}
@@ -63,7 +61,7 @@ func Publish(ctx context.Context, version QorMicroSiteInterface, printActivityLo
 			return
 		}
 
-		return version.PublishCallBack(_db, version.GetMicroSiteURL())
+		return version.PublishCallBack(db, version.GetMicroSiteURL())
 	})
 
 	return
