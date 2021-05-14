@@ -2,10 +2,10 @@
 
 ## Usage
 
-Initialize microsite with a QOR admin instance and `microsite.QorMicroSite` struct.
+Initialize microsite with a QOR admin instance, `microsite.QorMicroSite` struct and an optional `admin.Config`.
 
 ```go
-microsite.Init(adm, &microsite.QorMicroSite{})
+microsite.Init(adm, &microsite.QorMicroSite{}, &admin.Config{Name: "Microsites"})
 ```
 
 If you need to customize `QorMicroSite` which is mandatory for handle microsite url callback(add or remove to/from sitemap etc.). Define your own struct like this
@@ -19,7 +19,7 @@ type QorMicroSite struct {
 and invoke the `microsite.Init` function like this
 
 ```go
-microsite.Init(adm, &QorMicroSite{})
+microsite.Init(adm, &QorMicroSite{}, &admin.Config{Name: "Microsites"})
 ```
 
 Then you can implement 2 functions to handle the url with sitemap like this. If an error occurred, the publish or unpublish action will be reverted.

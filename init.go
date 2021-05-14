@@ -7,6 +7,7 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/qor/admin"
 	"github.com/qor/media"
+	"github.com/qor/publish2"
 	"github.com/qor/qor"
 	"github.com/qor/qor/resource"
 	"github.com/qor/roles"
@@ -38,10 +39,14 @@ var (
 	}
 )
 
-func Init(adm *admin.Admin, siteStruct QorMicroSiteInterface) {
+func Init(adm *admin.Admin, siteStruct QorMicroSiteInterface, admConfig *admin.Config) {
+	if admConfig == nil {
+		admConfig = &admin.Config{Name: "MicroSites"}
+	}
+
 	db := adm.DB
 	db.AutoMigrate(siteStruct)
-	adm.AddResource(siteStruct, &admin.Config{Name: "MicroSites"})
+	adm.AddResource(siteStruct, admConfig)
 
 	publish2.RegisterCallbacks(db)
 	media.RegisterCallbacks(db)
