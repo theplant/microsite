@@ -7,6 +7,8 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/qor/admin"
 	"github.com/qor/media"
+	mediaoss "github.com/qor/media/oss"
+	"github.com/qor/oss"
 	"github.com/qor/publish2"
 	"github.com/qor/qor"
 	"github.com/qor/qor/resource"
@@ -39,10 +41,12 @@ var (
 	}
 )
 
-func Init(adm *admin.Admin, siteStruct QorMicroSiteInterface, admConfig *admin.Config) {
+func Init(s3 oss.StorageInterface, adm *admin.Admin, siteStruct QorMicroSiteInterface, admConfig *admin.Config) {
 	if admConfig == nil {
 		admConfig = &admin.Config{Name: "MicroSites"}
 	}
+
+	mediaoss.Storage = s3
 
 	db := adm.DB
 	db.AutoMigrate(siteStruct)
