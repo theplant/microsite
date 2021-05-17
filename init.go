@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"html/template"
 
-	"github.com/jinzhu/gorm"
 	"github.com/qor/admin"
 	"github.com/qor/media"
 	mediaoss "github.com/qor/media/oss"
@@ -32,7 +31,6 @@ const (
 var (
 	//default value os.TempDir()
 	TempDir string
-	admDB   *gorm.DB
 
 	changeStatusActionMap = map[string]string{
 		Action_unpublish: "Unpublished",
@@ -59,10 +57,6 @@ func Init(s3 oss.StorageInterface, adm *admin.Admin, siteStruct QorMicroSiteInte
 
 func (site *QorMicroSite) ConfigureQorResourceBeforeInitialize(res resource.Resourcer) {
 	if res, ok := res.(*admin.Resource); ok {
-		if admDB == nil {
-			admDB = res.GetAdmin().DB
-		}
-
 		res.Meta(&admin.Meta{Name: "Name", Label: "Site Name", Permission: roles.Deny(roles.Update, roles.Anyone)})
 		res.Meta(&admin.Meta{Name: "URL", Label: "Microsite URL", Permission: roles.Deny(roles.Update, roles.Anyone)})
 		res.Meta(&admin.Meta{

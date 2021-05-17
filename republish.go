@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/jinzhu/gorm"
+	"github.com/qor/admin"
 	"github.com/qor/media/oss"
 	"github.com/qor/publish2"
 	"github.com/theplant/gormutils"
@@ -25,7 +26,7 @@ func Republish(db *gorm.DB, version QorMicroSiteInterface, printActivityLog bool
 		}()
 
 		iRecord := reflect.New(reflect.TypeOf(version).Elem()).Interface()
-		if err1 = admDB.Set(publish2.VersionMode, publish2.VersionMultipleMode).Set(publish2.ScheduleMode, publish2.ModeOff).
+		if err1 = db.Set(admin.DisableCompositePrimaryKeyMode, "on").Set(publish2.VersionMode, publish2.VersionMultipleMode).Set(publish2.ScheduleMode, publish2.ModeOff).
 			Where("id = ? AND status = ?", version.GetId(), Status_published).First(iRecord).Error; err1 != nil {
 			return
 		}
