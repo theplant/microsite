@@ -39,7 +39,7 @@ var (
 	}
 )
 
-func Init(s3 oss.StorageInterface, adm *admin.Admin, siteStruct QorMicroSiteInterface, admConfig *admin.Config) {
+func Init(s3 oss.StorageInterface, adm *admin.Admin, siteStruct QorMicroSiteInterface, admConfig *admin.Config) *admin.Resource {
 	if admConfig == nil {
 		admConfig = &admin.Config{Name: "MicroSites"}
 	}
@@ -48,11 +48,13 @@ func Init(s3 oss.StorageInterface, adm *admin.Admin, siteStruct QorMicroSiteInte
 
 	db := adm.DB
 	db.AutoMigrate(siteStruct)
-	adm.AddResource(siteStruct, admConfig)
+	res := adm.AddResource(siteStruct, admConfig)
 
 	publish2.RegisterCallbacks(db)
 	media.RegisterCallbacks(db)
 	media.RegisterMediaHandler("unzip_package_handler", unzipPackageHandler{})
+
+	return res
 }
 
 func (site *QorMicroSite) ConfigureQorResourceBeforeInitialize(res resource.Resourcer) {

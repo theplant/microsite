@@ -15,9 +15,8 @@ type TestMicroSite struct {
 func TestInit(t *testing.T) {
 	adm := SetupAdmin()
 	s3 := InitTestS3()
-	microsite.Init(s3, adm, &TestMicroSite{}, &admin.Config{Name: "TestMicroSites"})
+	res := microsite.Init(s3, adm, &TestMicroSite{}, &admin.Config{Name: "TestMicroSites"})
 
-	res := adm.GetResource("TestMicroSites")
 	if res == nil {
 		t.Error("microsite is not registered")
 	}

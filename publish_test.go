@@ -9,10 +9,6 @@ import (
 	"github.com/qor/oss"
 )
 
-// func TestPublish() {
-
-// }
-
 type MockQORS3Client struct {
 	oss.StorageInterface
 	Objects map[string]string
