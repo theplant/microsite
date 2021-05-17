@@ -24,6 +24,7 @@ func Publish(db *gorm.DB, version QorMicroSiteInterface, printActivityLog bool) 
 			}
 		}()
 
+		// Find possible online version
 		iRecord := reflect.New(reflect.TypeOf(version).Elem()).Interface()
 		if err1 = admDB.Set(publish2.VersionMode, publish2.VersionMultipleMode).Set(publish2.ScheduleMode, publish2.ModeOff).
 			Where("id = ? AND status = ?", version.GetId(), Status_published).Where("version_name <> ?", version.GetVersionName()).
@@ -36,6 +37,7 @@ func Publish(db *gorm.DB, version QorMicroSiteInterface, printActivityLog bool) 
 			return errors.New("given record doesn't implement QorMicroSiteInterface")
 		}
 
+		// If there is a published version, unpublish it
 		if liveRecord.GetId() != 0 {
 			for _, o := range liveRecord.GetFilesPathWithSiteURL() {
 				oss.Storage.Delete(o)
@@ -51,6 +53,7 @@ func Publish(db *gorm.DB, version QorMicroSiteInterface, printActivityLog bool) 
 			}
 		}
 
+		// Publish given version
 		version.SetStatus(Status_published)
 		version.SetVersionPriority(fmt.Sprintf("%v", time.Now().UTC().Format(time.RFC3339)))
 		if err1 = tx.Save(version).Error; err1 != nil {
