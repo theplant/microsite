@@ -25,12 +25,15 @@ func Unpublish(db *gorm.DB, version QorMicroSiteInterface, printActivityLog bool
 			return
 		}
 
+		if err1 = version.UnPublishCallBack(tx, version.GetMicroSiteURL()); err1 != nil {
+			return
+		}
+
 		for _, o := range version.GetFilesPathWithSiteURL() {
 			oss.Storage.Delete(o)
 		}
 
-		return version.UnPublishCallBack(db, version.GetMicroSiteURL())
-
+		return
 	})
 
 	return

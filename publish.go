@@ -27,7 +27,7 @@ func Publish(db *gorm.DB, version QorMicroSiteInterface, printActivityLog bool) 
 
 		// Find possible online version
 		iRecord := reflect.New(reflect.TypeOf(version).Elem()).Interface()
-		if err1 = db.Set(admin.DisableCompositePrimaryKeyMode, "on").Set(publish2.VersionMode, publish2.VersionMultipleMode).Set(publish2.ScheduleMode, publish2.ModeOff).
+		if err1 = tx.Set(admin.DisableCompositePrimaryKeyMode, "on").Set(publish2.VersionMode, publish2.VersionMultipleMode).Set(publish2.ScheduleMode, publish2.ModeOff).
 			Where("id = ? AND status = ?", version.GetId(), Status_published).Where("version_name <> ?", version.GetVersionName()).
 			First(iRecord).Error; err1 != nil {
 			return
@@ -49,7 +49,7 @@ func Publish(db *gorm.DB, version QorMicroSiteInterface, printActivityLog bool) 
 				return
 			}
 
-			if err1 = liveRecord.UnPublishCallBack(db, liveRecord.GetMicroSiteURL()); err1 != nil {
+			if err1 = liveRecord.UnPublishCallBack(tx, liveRecord.GetMicroSiteURL()); err1 != nil {
 				return
 			}
 		}
@@ -61,11 +61,16 @@ func Publish(db *gorm.DB, version QorMicroSiteInterface, printActivityLog bool) 
 			return
 		}
 
+		// If callback has error, instead of rollback s3 changes. we call that expensive operation later.
+		if err1 = version.PublishCallBack(tx, version.GetMicroSiteURL()); err1 != nil {
+			return
+		}
+
 		if _, err1 = UnzipPkgAndUpload(version.GetMicroSitePackage().Url, version.GetMicroSiteURL()); err1 != nil {
 			return
 		}
 
-		return version.PublishCallBack(db, version.GetMicroSiteURL())
+		return
 	})
 
 	return
