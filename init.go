@@ -3,6 +3,7 @@ package microsite
 import (
 	"fmt"
 	"html/template"
+	"path/filepath"
 
 	"github.com/qor/admin"
 	"github.com/qor/media"
@@ -67,9 +68,29 @@ func (site *QorMicroSite) ConfigureQorResourceBeforeInitialize(res resource.Reso
 			Valuer: func(value interface{}, ctx *qor.Context) interface{} {
 				site := value.(QorMicroSiteInterface)
 				var result string
+				htmlFiles := []string{}
+				otherFiles := []string{}
+
 				for _, v := range site.GetFileList() {
-					result += fmt.Sprintf(`<a href="%v" target="_blank"> %v </a><br>`, site.GetPreviewURL()+"/"+v, v)
+					if filepath.Ext(v) == ".html" {
+						htmlFiles = append(htmlFiles, v)
+					} else {
+						otherFiles = append(otherFiles, v)
+					}
 				}
+
+				// List all html files first
+				for _, v := range htmlFiles {
+					result += fmt.Sprintf(`<br><a href="%v" target="_blank"> %v </a>`, site.GetPreviewURL()+"/"+v, v)
+				}
+				// Add view all button
+				result += `<br><p style='margin:10px 0'><span>Assets</span><p>`
+				result += `<div>`
+				for _, v := range otherFiles {
+					result += fmt.Sprintf(`<a href="%v" target="_blank">%v</a><br>`, site.GetPreviewURL()+"/"+v, v)
+				}
+				result += `</div>`
+
 				return template.HTML(result)
 			},
 		})
