@@ -96,7 +96,7 @@ func (site *QorMicroSite) ConfigureQorResourceBeforeInitialize(res resource.Reso
 		})
 
 		res.IndexAttrs("Name", "URL", "Status")
-		res.EditAttrs("Name", "URL", "FileList", "Package")
+		res.EditAttrs("Name", "URL", "Package", "FileList")
 		res.NewAttrs(res.NewAttrs(), "-Status", "-FileList")
 
 		res.Action(&admin.Action{
