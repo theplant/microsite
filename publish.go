@@ -29,7 +29,7 @@ func Publish(db *gorm.DB, version QorMicroSiteInterface, printActivityLog bool) 
 		iRecord := reflect.New(reflect.TypeOf(version).Elem()).Interface()
 		if err1 = tx.Set(admin.DisableCompositePrimaryKeyMode, "on").Set(publish2.VersionMode, publish2.VersionMultipleMode).Set(publish2.ScheduleMode, publish2.ModeOff).
 			Where("id = ? AND status = ?", version.GetId(), Status_published).Where("version_name <> ?", version.GetVersionName()).
-			First(iRecord).Error; err1 != nil {
+			First(iRecord).Error; err1 != nil && err1 != gorm.ErrRecordNotFound {
 			return
 		}
 
