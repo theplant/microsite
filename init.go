@@ -33,6 +33,7 @@ var (
 	//default value os.TempDir()
 	TempDir string
 
+	prefixCollection      = []string{"/"}
 	changeStatusActionMap = map[string]string{
 		Action_unpublish: "Unpublished",
 		Action_publish:   "Published",
@@ -58,10 +59,32 @@ func Init(s3 oss.StorageInterface, adm *admin.Admin, siteStruct QorMicroSiteInte
 	return res
 }
 
+//SetPrefixCollection set collection of prefix for microsite, then select one for microsite
+func SetPrefixCollection(paths []string) {
+	prefixCollection = paths
+}
+
 func (site *QorMicroSite) ConfigureQorResourceBeforeInitialize(res resource.Resourcer) {
 	if res, ok := res.(*admin.Resource); ok {
 		res.Meta(&admin.Meta{Name: "Name", Label: "Site Name", Permission: roles.Deny(roles.Update, roles.Anyone)})
 		res.Meta(&admin.Meta{Name: "URL", Label: "Microsite URL", Permission: roles.Deny(roles.Update, roles.Anyone)})
+		res.Meta(&admin.Meta{
+			Name:       "PrefixPath",
+			Permission: roles.Deny(roles.Update, roles.Anyone),
+			Config: &admin.SelectOneConfig{
+				Collection: func(record interface{}, ctx *qor.Context) (result [][]string) {
+					site := record.(QorMicroSiteInterface)
+					if site.GetId() != 0 {
+						result = append(result, []string{site.GetPrefixPath(), site.GetPrefixPath()})
+						return
+					}
+					for _, v := range prefixCollection {
+						result = append(result, []string{v, v})
+					}
+					return
+				},
+				AllowBlank: false,
+			}})
 		res.Meta(&admin.Meta{
 			Name: "FileList",
 			Type: "readonly",
@@ -95,8 +118,8 @@ func (site *QorMicroSite) ConfigureQorResourceBeforeInitialize(res resource.Reso
 			},
 		})
 
-		res.IndexAttrs("Name", "URL", "Status")
-		res.EditAttrs("Name", "URL", "Package", "FileList")
+		res.IndexAttrs("Name", "URL", "PrefixPath", "Status")
+		res.EditAttrs("Name", "URL", "PrefixPath", "FileList", "Package")
 		res.NewAttrs(res.NewAttrs(), "-Status", "-FileList")
 
 		res.Action(&admin.Action{

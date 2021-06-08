@@ -15,6 +15,7 @@ import (
 type QorMicroSiteInterface interface {
 	GetId() uint
 	GetMicroSiteURL() string
+	GetPrefixPath() string
 	GetMicroSitePackage() *Package
 	GetFileList() []string
 	GetFilesPathWithSiteURL() []string
@@ -36,10 +37,11 @@ type QorMicroSite struct {
 	publish2.Version
 	publish2.Schedule
 
-	Name    string
-	URL     string
-	Status  string
-	Package Package `gorm:"size:65536" media_library:"url:/microsite/zips/{{primary_key}}/{{short_hash}}/{{filename}}"`
+	Name       string
+	URL        string
+	PrefixPath string
+	Status     string
+	Package    Package `gorm:"size:65536" media_library:"url:/microsite/zips/{{primary_key}}/{{short_hash}}/{{filename}}"`
 }
 
 func (site *QorMicroSite) BeforeSave(db *gorm.DB) (err error) {
@@ -72,7 +74,11 @@ func (site QorMicroSite) GetFilesPathWithSiteURL() (arr []string) {
 
 // GetMicroSiteURL will return a site's URL
 func (site QorMicroSite) GetMicroSiteURL() string {
-	return site.URL
+	return path.Join(site.PrefixPath, site.URL)
+}
+
+func (site QorMicroSite) GetPrefixPath() string {
+	return site.PrefixPath
 }
 
 // GetMicroSitePackage get microsite package
