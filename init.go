@@ -1,14 +1,14 @@
 package microsite
 
 import (
-	"context"
 	"fmt"
 	"html/template"
-	"time"
+	"path/filepath"
 
-	"github.com/jinzhu/gorm"
 	"github.com/qor/admin"
 	"github.com/qor/media"
+	mediaoss "github.com/qor/media/oss"
+	"github.com/qor/oss"
 	"github.com/qor/publish2"
 	"github.com/qor/qor"
 	"github.com/qor/qor/resource"
@@ -19,67 +19,91 @@ const (
 	ZIP_PACKAGE_DIR = "microsite/zips/"
 	FILE_LIST_DIR   = "microsite/"
 
-	Action_preview        = "preview"
-	Action_request_review = "request review"
-	Action_approve        = "approve"
-	Action_return         = "return"
-	Action_publish        = "publish"
-	Action_republish      = "republish"
-	Action_unpublish      = "unpublish"
+	Action_preview   = "preview"
+	Action_publish   = "publish"
+	Action_republish = "republish"
+	Action_unpublish = "unpublish"
 
 	Status_draft       = "Draft"
-	Status_review      = "Review"
-	Status_approved    = "Approved"
-	Status_returned    = "Returned"
 	Status_published   = "Published"
 	Status_unpublished = "Unpublished"
 )
 
-var changeStatusActionMap = map[string]string{
-	Action_request_review: "Review",
-	Action_approve:        "Approved",
-	Action_return:         "Returned",
-	Action_unpublish:      "Unpublished",
-	Action_publish:        "Published",
-	Action_republish:      "Unpublished",
-}
-var admDB *gorm.DB
-var TempDir string = "public/system/qor_jobs"
+var (
+	//default value os.TempDir()
+	TempDir string
 
-func init() {
+	changeStatusActionMap = map[string]string{
+		Action_unpublish: "Unpublished",
+		Action_publish:   "Published",
+		Action_republish: "Unpublished",
+	}
+)
+
+func Init(s3 oss.StorageInterface, adm *admin.Admin, siteStruct QorMicroSiteInterface, admConfig *admin.Config) *admin.Resource {
+	if admConfig == nil {
+		admConfig = &admin.Config{Name: "MicroSites"}
+	}
+
+	mediaoss.Storage = s3
+
+	db := adm.DB
+	db.AutoMigrate(siteStruct)
+	res := adm.AddResource(siteStruct, admConfig)
+
+	publish2.RegisterCallbacks(db)
+	media.RegisterCallbacks(db)
 	media.RegisterMediaHandler("unzip_package_handler", unzipPackageHandler{})
+
+	return res
 }
 
 func (site *QorMicroSite) ConfigureQorResourceBeforeInitialize(res resource.Resourcer) {
 	if res, ok := res.(*admin.Resource); ok {
-		if admDB == nil {
-			admDB = res.GetAdmin().DB
-		}
-
 		res.Meta(&admin.Meta{Name: "Name", Label: "Site Name", Permission: roles.Deny(roles.Update, roles.Anyone)})
 		res.Meta(&admin.Meta{Name: "URL", Label: "Microsite URL", Permission: roles.Deny(roles.Update, roles.Anyone)})
 		res.Meta(&admin.Meta{
 			Name: "FileList",
 			Type: "readonly",
 			Valuer: func(value interface{}, ctx *qor.Context) interface{} {
-				this := value.(QorMicroSiteInterface)
+				site := value.(QorMicroSiteInterface)
 				var result string
-				for _, v := range this.GetFileList() {
-					result += fmt.Sprintf(`<a href="%v" target="_blank"> %v </a><br>`, this.GetPreviewURL()+"/"+v, v)
+				htmlFiles := []string{}
+				otherFiles := []string{}
+
+				for _, v := range site.GetFileList() {
+					if filepath.Ext(v) == ".html" {
+						htmlFiles = append(htmlFiles, v)
+					} else {
+						otherFiles = append(otherFiles, v)
+					}
 				}
+
+				// List all html files first
+				for _, v := range htmlFiles {
+					result += fmt.Sprintf(`<br><a href="%v" target="_blank"> %v </a>`, site.GetPreviewURL()+"/"+v, v)
+				}
+				// Add view all button
+				result += `<br><p style='margin:10px 0'><span>Assets</span><p>`
+				result += `<div>`
+				for _, v := range otherFiles {
+					result += fmt.Sprintf(`<a href="%v" target="_blank">%v</a><br>`, site.GetPreviewURL()+"/"+v, v)
+				}
+				result += `</div>`
+
 				return template.HTML(result)
 			},
 		})
 
 		res.IndexAttrs("Name", "URL", "Status")
-		res.EditAttrs("Name", "URL", "FileList", "Package")
+		res.EditAttrs("Name", "URL", "Package", "FileList")
 		res.NewAttrs(res.NewAttrs(), "-Status", "-FileList")
 
 		res.Action(&admin.Action{
 			Name: "Preview",
 			URL: func(record interface{}, context *admin.Context) string {
-				this := record.(QorMicroSiteInterface)
-				return this.GetPreviewURL()
+				site := record.(QorMicroSiteInterface)
+				return site.GetPreviewURL()
 			},
 			URLOpenType: "_blank",
 			Modes:       []string{"show", "edit"},
@@ -112,16 +136,4 @@ func (site *QorMicroSite) ConfigureQorResourceBeforeInitialize(res resource.Reso
 			Modes: []string{"edit"},
 		})
 	}
-}
-
-func AutoPublishMicrosite(db *gorm.DB) error {
-	ctx := context.TODO()
-	sites := []QorMicroSite{}
-	db.Set(publish2.VersionMode, publish2.VersionMultipleMode).Set(publish2.ScheduleMode, publish2.ModeOff).Where("status = ? AND scheduled_start_at <= ?", Status_approved, gorm.NowFunc().Add(time.Minute)).Find(&sites)
-	for _, version := range sites {
-		if err := Publish(ctx, &version, true); err != nil {
-			return err
-		}
-	}
-	return nil
 }
