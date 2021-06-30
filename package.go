@@ -30,7 +30,7 @@ func (site QorMicroSite) GetPreviewURL() string {
 	endPoint := mediaoss.Storage.GetEndpoint()
 	endPoint = removeHttpPrefix(endPoint)
 
-	return "//" + path.Join(endPoint, FILE_LIST_DIR, strings.Split(_url, FILE_LIST_DIR)[1])
+	return "//" + path.Join(endPoint, FILE_LIST_DIR, strings.Split(_url, FILE_LIST_DIR)[1], "index.html")
 }
 
 // unzipPackageHandler unzip microsite package

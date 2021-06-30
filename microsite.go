@@ -1,7 +1,6 @@
 package microsite
 
 import (
-	"errors"
 	"fmt"
 	"path"
 	"strings"
@@ -38,22 +37,10 @@ type QorMicroSite struct {
 	publish2.Schedule
 
 	Name       string
-	URL        string
 	PrefixPath string
+	URL        string
 	Status     string
 	Package    Package `gorm:"size:65536" media_library:"url:/microsite/zips/{{primary_key}}/{{short_hash}}/{{filename}}"`
-}
-
-func (site *QorMicroSite) BeforeSave(db *gorm.DB) (err error) {
-	if site.Name == "" {
-		return errors.New("name cannot be blank")
-	}
-
-	if site.URL == "" {
-		return errors.New("URL cannot be blank")
-	}
-
-	return nil
 }
 
 // GetMicroSiteID will return a site's ID

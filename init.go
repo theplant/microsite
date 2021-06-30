@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"html/template"
 	"path/filepath"
+	"strings"
 
 	"github.com/qor/admin"
 	"github.com/qor/media"
@@ -12,7 +13,6 @@ import (
 	"github.com/qor/publish2"
 	"github.com/qor/qor"
 	"github.com/qor/qor/resource"
-	"github.com/qor/roles"
 )
 
 const (
@@ -66,23 +66,10 @@ func SetPrefixCollection(paths []string) {
 
 func (site *QorMicroSite) ConfigureQorResourceBeforeInitialize(res resource.Resourcer) {
 	if res, ok := res.(*admin.Resource); ok {
-		res.Meta(&admin.Meta{Name: "Name", Label: "Site Name", Permission: roles.Deny(roles.Update, roles.Anyone)})
-		res.Meta(&admin.Meta{Name: "URL", Label: "Microsite URL", Permission: roles.Deny(roles.Update, roles.Anyone)})
 		res.Meta(&admin.Meta{
-			Name:       "PrefixPath",
-			Permission: roles.Deny(roles.Update, roles.Anyone),
+			Name: "PrefixPath",
 			Config: &admin.SelectOneConfig{
-				Collection: func(record interface{}, ctx *qor.Context) (result [][]string) {
-					site := record.(QorMicroSiteInterface)
-					if site.GetId() != 0 {
-						result = append(result, []string{site.GetPrefixPath(), site.GetPrefixPath()})
-						return
-					}
-					for _, v := range prefixCollection {
-						result = append(result, []string{v, v})
-					}
-					return
-				},
+				Collection: prefixCollection,
 				AllowBlank: false,
 			}})
 		res.Meta(&admin.Meta{
@@ -102,15 +89,16 @@ func (site *QorMicroSite) ConfigureQorResourceBeforeInitialize(res resource.Reso
 					}
 				}
 
+				_url := strings.TrimSuffix(site.GetPreviewURL(), "/index.html")
 				// List all html files first
 				for _, v := range htmlFiles {
-					result += fmt.Sprintf(`<br><a href="%v" target="_blank"> %v </a>`, site.GetPreviewURL()+"/"+v, v)
+					result += fmt.Sprintf(`<br><a href="%v" target="_blank"> %v </a>`, _url+"/"+v, v)
 				}
 				// Add view all button
 				result += `<br><p style='margin:10px 0'><span>Assets</span><p>`
 				result += `<div>`
 				for _, v := range otherFiles {
-					result += fmt.Sprintf(`<a href="%v" target="_blank">%v</a><br>`, site.GetPreviewURL()+"/"+v, v)
+					result += fmt.Sprintf(`<a href="%v" target="_blank">%v</a><br>`, _url+"/"+v, v)
 				}
 				result += `</div>`
 
@@ -118,8 +106,8 @@ func (site *QorMicroSite) ConfigureQorResourceBeforeInitialize(res resource.Reso
 			},
 		})
 
-		res.IndexAttrs("Name", "URL", "PrefixPath", "Status")
-		res.EditAttrs("Name", "URL", "PrefixPath", "FileList", "Package")
+		res.IndexAttrs("Name", "PrefixPath", "URL", "Status")
+		res.EditAttrs("Name", "PrefixPath", "URL", "FileList", "Package")
 		res.NewAttrs(res.NewAttrs(), "-Status", "-FileList")
 
 		res.Action(&admin.Action{
