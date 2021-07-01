@@ -99,10 +99,12 @@ func UnzipPkgAndUpload(pkgURL, dest string) (files string, err error) {
 			}
 
 			if matched {
-				filePrefix = newPrefix
+				//if baseName has dir levels, only get the first level.
+				filePrefix = strings.Split(newPrefix, "/")[0] + "/"
 			}
 		}
 	}
+
 	arr := []string{}
 	dest = strings.Replace(dest, ZIP_PACKAGE_DIR, FILE_LIST_DIR, 1)
 	for _, f := range reader.File {
