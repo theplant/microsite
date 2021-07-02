@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/jinzhu/gorm"
 	"github.com/qor/admin"
 	"github.com/qor/media"
 	mediaoss "github.com/qor/media/oss"
@@ -106,9 +107,16 @@ func (site *QorMicroSite) ConfigureQorResourceBeforeInitialize(res resource.Reso
 			},
 		})
 
-		res.IndexAttrs("Name", "PrefixPath", "URL", "Status")
+		res.IndexAttrs("ID", "Name", "PrefixPath", "URL", "Status")
 		res.EditAttrs("Name", "PrefixPath", "URL", "FileList", "Package")
 		res.NewAttrs(res.NewAttrs(), "-Status", "-FileList")
+		res.Scope(&admin.Scope{
+			Name:    "",
+			Default: true,
+			Handler: func(db *gorm.DB, ctx *qor.Context) *gorm.DB {
+				return db.Order("id DESC")
+			},
+		})
 
 		res.Action(&admin.Action{
 			Name: "Preview",
