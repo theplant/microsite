@@ -32,7 +32,8 @@ const (
 
 var (
 	//default value os.TempDir()
-	TempDir string
+	TempDir             string
+	CountOfThreadUpload int = 5
 
 	prefixCollection      = []string{"/"}
 	changeStatusActionMap = map[string]string{

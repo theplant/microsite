@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/qor/media"
 	mediaoss "github.com/qor/media/oss"
@@ -63,6 +64,11 @@ func (packageHandler unzipPackageHandler) Handle(media media.Media, file media.F
 	return err
 }
 
+type fileReader struct {
+	path   string
+	reader *bytes.Reader
+}
+
 func UnzipPkgAndUpload(pkgURL, dest string) (files string, err error) {
 	baseName := strings.TrimSuffix(filepath.Base(pkgURL), filepath.Ext(pkgURL))
 	fileName, err := getFileLocalName(pkgURL)
@@ -105,34 +111,57 @@ func UnzipPkgAndUpload(pkgURL, dest string) (files string, err error) {
 		}
 	}
 
+	chFile := make(chan fileReader, CountOfThreadUpload+2)
+	chErrs := make(chan error)
+	var group sync.WaitGroup
+	for i := 0; i < CountOfThreadUpload; i++ {
+		group.Add(1)
+		go func() {
+			defer group.Done()
+			for cf := range chFile {
+				if _, err := mediaoss.Storage.Put(cf.path, cf.reader); err != nil {
+					chErrs <- err
+					return
+				}
+			}
+		}()
+	}
+
 	arr := []string{}
 	dest = strings.Replace(dest, ZIP_PACKAGE_DIR, FILE_LIST_DIR, 1)
 	for _, f := range reader.File {
-		if !strings.HasPrefix(f.Name, "__MACOSX") && !strings.HasSuffix(f.Name, "DS_Store") && !f.FileInfo().IsDir() {
-			rc, err := f.Open()
-			if err != nil {
-				return files, err
-			}
-			defer rc.Close()
-
-			fixedFileName := strings.TrimPrefix(f.Name, filePrefix)
-			arr = append(arr, fixedFileName)
-			content, err := ioutil.ReadAll(rc)
-			if err != nil {
-				return files, err
-			}
-
-			// Fix Zip Slip Vulnerability https://snyk.io/research/zip-slip-vulnerability#go
-			if pth, err := utils.SafeJoin(dest, fixedFileName); err == nil {
-				if _, err := mediaoss.Storage.Put(pth, bytes.NewReader(content)); err != nil {
+		select {
+		case err = <-chErrs:
+			return files, err
+		default:
+			if !strings.HasPrefix(f.Name, "__MACOSX") && !strings.HasSuffix(f.Name, "DS_Store") && !f.FileInfo().IsDir() {
+				rc, err := f.Open()
+				if err != nil {
 					return files, err
 				}
-			} else {
-				return files, err
+
+				fixedFileName := strings.TrimPrefix(f.Name, filePrefix)
+				arr = append(arr, fixedFileName)
+
+				content, err := ioutil.ReadAll(rc)
+				if err != nil {
+					rc.Close()
+					return files, err
+				}
+				rc.Close()
+
+				// Fix Zip Slip Vulnerability https://snyk.io/research/zip-slip-vulnerability#go
+				pth, err := utils.SafeJoin(dest, fixedFileName)
+				if err != nil {
+					return files, err
+				}
+
+				chFile <- fileReader{path: pth, reader: bytes.NewReader(content)}
 			}
 		}
 	}
-
+	close(chFile)
+	group.Wait()
 	return strings.Join(arr, ","), nil
 }
 
