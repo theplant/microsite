@@ -10,6 +10,7 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/qor/admin"
 	"github.com/qor/media/oss"
+	"github.com/qor/oss/s3"
 	"github.com/qor/publish2"
 	"github.com/theplant/gormutils"
 )
@@ -40,10 +41,16 @@ func Publish(db *gorm.DB, version QorMicroSiteInterface, printActivityLog bool) 
 
 		// If there is a published version, unpublish it
 		if liveRecord.GetId() != 0 {
-			for _, o := range liveRecord.GetFilesPathWithSiteURL() {
-				oss.Storage.Delete(o)
+			if s3, ok := oss.Storage.(*s3.Client); ok {
+				err1 = s3.DeleteObjects(liveRecord.GetFilesPathWithSiteURL())
+			} else {
+				for _, o := range liveRecord.GetFilesPathWithSiteURL() {
+					oss.Storage.Delete(o)
+				}
 			}
-
+			if err1 != nil {
+				return
+			}
 			liveRecord.SetStatus(Status_unpublished)
 			if err1 = tx.Save(liveRecord).Error; err1 != nil {
 				return
