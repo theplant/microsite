@@ -119,8 +119,8 @@ func UnzipPkgAndUpload(pkgURL, dest string) (files string, err error) {
 		go func() {
 			defer group.Done()
 			for cf := range chFile {
-				if _, err := mediaoss.Storage.Put(cf.path, cf.reader); err != nil {
-					chErrs <- err
+				if _, err0 := mediaoss.Storage.Put(cf.path, cf.reader); err0 != nil {
+					chErrs <- err0
 					return
 				}
 			}
@@ -129,31 +129,38 @@ func UnzipPkgAndUpload(pkgURL, dest string) (files string, err error) {
 
 	arr := []string{}
 	dest = strings.Replace(dest, ZIP_PACKAGE_DIR, FILE_LIST_DIR, 1)
+
+Loop:
 	for _, f := range reader.File {
 		select {
 		case err = <-chErrs:
-			return files, err
+			break Loop
 		default:
 			if !strings.HasPrefix(f.Name, "__MACOSX") && !strings.HasSuffix(f.Name, "DS_Store") && !f.FileInfo().IsDir() {
-				rc, err := f.Open()
+				var (
+					rc      io.ReadCloser
+					content []byte
+					pth     string
+				)
+				rc, err = f.Open()
 				if err != nil {
-					return files, err
+					break Loop
 				}
 
 				fixedFileName := strings.TrimPrefix(f.Name, filePrefix)
 				arr = append(arr, fixedFileName)
 
-				content, err := ioutil.ReadAll(rc)
+				content, err = ioutil.ReadAll(rc)
 				if err != nil {
 					rc.Close()
-					return files, err
+					break Loop
 				}
 				rc.Close()
 
 				// Fix Zip Slip Vulnerability https://snyk.io/research/zip-slip-vulnerability#go
-				pth, err := utils.SafeJoin(dest, fixedFileName)
+				pth, err = utils.SafeJoin(dest, fixedFileName)
 				if err != nil {
-					return files, err
+					break Loop
 				}
 
 				chFile <- fileReader{path: pth, reader: bytes.NewReader(content)}
@@ -162,6 +169,9 @@ func UnzipPkgAndUpload(pkgURL, dest string) (files string, err error) {
 	}
 	close(chFile)
 	group.Wait()
+	if err != nil {
+		return
+	}
 	return strings.Join(arr, ","), nil
 }
 
