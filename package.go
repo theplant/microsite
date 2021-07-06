@@ -12,6 +12,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"unicode/utf8"
 
 	"github.com/qor/media"
 	mediaoss "github.com/qor/media/oss"
@@ -89,6 +90,9 @@ func UnzipPkgAndUpload(pkgURL, dest string) (files string, err error) {
 	{
 		folders := []string{}
 		for _, f := range reader.File {
+			if !utf8.Valid([]byte(f.Name)) {
+				return files, fmt.Errorf("zip invalidURI: %v", f.Name)
+			}
 			if !strings.HasPrefix(f.Name, "__MACOSX") && f.FileInfo().IsDir() {
 				folders = append(folders, f.Name)
 			}
