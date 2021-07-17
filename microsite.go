@@ -22,11 +22,13 @@ type QorMicroSiteInterface interface {
 	GetVersionName() string
 	SetVersionPriority(string)
 	GetStatus() string
-	SetStatus(string)
 	TableName() string
 	GetCreatedAt() time.Time
 	PublishCallBack(db *gorm.DB, sitePath string) error
 	UnPublishCallBack(db *gorm.DB, sitePath string) error
+
+	SetStatus(string)
+	SetScheduledEndAt(*time.Time)
 }
 
 // QorMicroSite default qor microsite setting struct
@@ -95,6 +97,10 @@ func (site QorMicroSite) GetStatus() string {
 
 func (site *QorMicroSite) SetStatus(status string) {
 	site.Status = status
+}
+
+func (site *QorMicroSite) SetScheduledEndAt(t *time.Time) {
+	site.ScheduledEndAt = t
 }
 
 func (site QorMicroSite) PublishCallBack(db *gorm.DB, sitePath string) error {

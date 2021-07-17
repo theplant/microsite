@@ -36,7 +36,7 @@ func Republish(db *gorm.DB, version QorMicroSiteInterface, printActivityLog bool
 		if !ok {
 			return errors.New("given record doesn't implement QorMicroSiteInterface")
 		}
-
+		now := gorm.NowFunc()
 		if liveRecord.GetId() != 0 {
 			if s3, ok := oss.Storage.(*s3.Client); ok {
 				err1 = s3.DeleteObjects(liveRecord.GetFilesPathWithSiteURL())
@@ -50,6 +50,7 @@ func Republish(db *gorm.DB, version QorMicroSiteInterface, printActivityLog bool
 			}
 
 			liveRecord.SetStatus(Status_unpublished)
+			liveRecord.SetScheduledEndAt(&now)
 			if err1 = tx.Save(liveRecord).Error; err1 != nil {
 				return
 			}
@@ -62,7 +63,7 @@ func Republish(db *gorm.DB, version QorMicroSiteInterface, printActivityLog bool
 		}
 
 		version.SetStatus(Status_published)
-		version.SetVersionPriority(fmt.Sprintf("%v", time.Now().UTC().Format(time.RFC3339)))
+		version.SetVersionPriority(fmt.Sprintf("%v", now.UTC().Format(time.RFC3339)))
 		if err1 = tx.Save(version).Error; err1 != nil {
 			return
 		}
