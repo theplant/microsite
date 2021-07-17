@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
+	"unicode/utf8"
 
 	"github.com/qor/media"
 	mediaoss "github.com/qor/media/oss"
@@ -30,7 +32,7 @@ func (site QorMicroSite) GetPreviewURL() string {
 	endPoint := mediaoss.Storage.GetEndpoint()
 	endPoint = removeHttpPrefix(endPoint)
 
-	return "//" + path.Join(endPoint, FILE_LIST_DIR, strings.Split(_url, FILE_LIST_DIR)[1])
+	return "//" + path.Join(endPoint, FILE_LIST_DIR, strings.Split(_url, FILE_LIST_DIR)[1], "index.html")
 }
 
 // unzipPackageHandler unzip microsite package
@@ -63,6 +65,11 @@ func (packageHandler unzipPackageHandler) Handle(media media.Media, file media.F
 	return err
 }
 
+type fileReader struct {
+	path   string
+	reader *bytes.Reader
+}
+
 func UnzipPkgAndUpload(pkgURL, dest string) (files string, err error) {
 	baseName := strings.TrimSuffix(filepath.Base(pkgURL), filepath.Ext(pkgURL))
 	fileName, err := getFileLocalName(pkgURL)
@@ -83,6 +90,9 @@ func UnzipPkgAndUpload(pkgURL, dest string) (files string, err error) {
 	{
 		folders := []string{}
 		for _, f := range reader.File {
+			if !utf8.Valid([]byte(f.Name)) {
+				return files, fmt.Errorf("zip invalidURI: %v", f.Name)
+			}
 			if !strings.HasPrefix(f.Name, "__MACOSX") && f.FileInfo().IsDir() {
 				folders = append(folders, f.Name)
 			}
@@ -99,38 +109,73 @@ func UnzipPkgAndUpload(pkgURL, dest string) (files string, err error) {
 			}
 
 			if matched {
-				filePrefix = newPrefix
+				//if baseName has dir levels, only get the first level.
+				filePrefix = strings.Split(newPrefix, "/")[0] + "/"
 			}
 		}
 	}
+
+	chFile := make(chan fileReader, CountOfThreadUpload+2)
+	chErrs := make(chan error)
+	var group sync.WaitGroup
+	for i := 0; i < CountOfThreadUpload; i++ {
+		group.Add(1)
+		go func() {
+			defer group.Done()
+			for cf := range chFile {
+				if _, err0 := mediaoss.Storage.Put(cf.path, cf.reader); err0 != nil {
+					chErrs <- err0
+					return
+				}
+			}
+		}()
+	}
+
 	arr := []string{}
 	dest = strings.Replace(dest, ZIP_PACKAGE_DIR, FILE_LIST_DIR, 1)
+
+Loop:
 	for _, f := range reader.File {
-		if !strings.HasPrefix(f.Name, "__MACOSX") && !strings.HasSuffix(f.Name, "DS_Store") && !f.FileInfo().IsDir() {
-			rc, err := f.Open()
-			if err != nil {
-				return files, err
-			}
-			defer rc.Close()
-
-			fixedFileName := strings.TrimPrefix(f.Name, filePrefix)
-			arr = append(arr, fixedFileName)
-			content, err := ioutil.ReadAll(rc)
-			if err != nil {
-				return files, err
-			}
-
-			// Fix Zip Slip Vulnerability https://snyk.io/research/zip-slip-vulnerability#go
-			if pth, err := utils.SafeJoin(dest, fixedFileName); err == nil {
-				if _, err := mediaoss.Storage.Put(pth, bytes.NewReader(content)); err != nil {
-					return files, err
+		select {
+		case err = <-chErrs:
+			break Loop
+		default:
+			if !strings.HasPrefix(f.Name, "__MACOSX") && !strings.HasSuffix(f.Name, "DS_Store") && !f.FileInfo().IsDir() {
+				var (
+					rc      io.ReadCloser
+					content []byte
+					pth     string
+				)
+				rc, err = f.Open()
+				if err != nil {
+					break Loop
 				}
-			} else {
-				return files, err
+
+				fixedFileName := strings.TrimPrefix(f.Name, filePrefix)
+				arr = append(arr, fixedFileName)
+
+				content, err = ioutil.ReadAll(rc)
+				if err != nil {
+					rc.Close()
+					break Loop
+				}
+				rc.Close()
+
+				// Fix Zip Slip Vulnerability https://snyk.io/research/zip-slip-vulnerability#go
+				pth, err = utils.SafeJoin(dest, fixedFileName)
+				if err != nil {
+					break Loop
+				}
+
+				chFile <- fileReader{path: pth, reader: bytes.NewReader(content)}
 			}
 		}
 	}
-
+	close(chFile)
+	group.Wait()
+	if err != nil {
+		return
+	}
 	return strings.Join(arr, ","), nil
 }
 

@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"html/template"
 	"path/filepath"
+	"strings"
 
+	"github.com/jinzhu/gorm"
 	"github.com/qor/admin"
 	"github.com/qor/media"
 	mediaoss "github.com/qor/media/oss"
@@ -12,7 +14,6 @@ import (
 	"github.com/qor/publish2"
 	"github.com/qor/qor"
 	"github.com/qor/qor/resource"
-	"github.com/qor/roles"
 )
 
 const (
@@ -31,8 +32,10 @@ const (
 
 var (
 	//default value os.TempDir()
-	TempDir string
+	TempDir             string
+	CountOfThreadUpload int = 5
 
+	prefixCollection      = []string{"/"}
 	changeStatusActionMap = map[string]string{
 		Action_unpublish: "Unpublished",
 		Action_publish:   "Published",
@@ -58,10 +61,19 @@ func Init(s3 oss.StorageInterface, adm *admin.Admin, siteStruct QorMicroSiteInte
 	return res
 }
 
+//SetPrefixCollection set collection of prefix for microsite, then select one for microsite
+func SetPrefixCollection(paths []string) {
+	prefixCollection = paths
+}
+
 func (site *QorMicroSite) ConfigureQorResourceBeforeInitialize(res resource.Resourcer) {
 	if res, ok := res.(*admin.Resource); ok {
-		res.Meta(&admin.Meta{Name: "Name", Label: "Site Name", Permission: roles.Deny(roles.Update, roles.Anyone)})
-		res.Meta(&admin.Meta{Name: "URL", Label: "Microsite URL", Permission: roles.Deny(roles.Update, roles.Anyone)})
+		res.Meta(&admin.Meta{
+			Name: "PrefixPath",
+			Config: &admin.SelectOneConfig{
+				Collection: prefixCollection,
+				AllowBlank: false,
+			}})
 		res.Meta(&admin.Meta{
 			Name: "FileList",
 			Type: "readonly",
@@ -79,15 +91,16 @@ func (site *QorMicroSite) ConfigureQorResourceBeforeInitialize(res resource.Reso
 					}
 				}
 
+				_url := strings.TrimSuffix(site.GetPreviewURL(), "/index.html")
 				// List all html files first
 				for _, v := range htmlFiles {
-					result += fmt.Sprintf(`<br><a href="%v" target="_blank"> %v </a>`, site.GetPreviewURL()+"/"+v, v)
+					result += fmt.Sprintf(`<br><a href="%v" target="_blank"> %v </a>`, _url+"/"+v, v)
 				}
 				// Add view all button
 				result += `<br><p style='margin:10px 0'><span>Assets</span><p>`
 				result += `<div>`
 				for _, v := range otherFiles {
-					result += fmt.Sprintf(`<a href="%v" target="_blank">%v</a><br>`, site.GetPreviewURL()+"/"+v, v)
+					result += fmt.Sprintf(`<a href="%v" target="_blank">%v</a><br>`, _url+"/"+v, v)
 				}
 				result += `</div>`
 
@@ -95,9 +108,16 @@ func (site *QorMicroSite) ConfigureQorResourceBeforeInitialize(res resource.Reso
 			},
 		})
 
-		res.IndexAttrs("Name", "URL", "Status")
-		res.EditAttrs("Name", "URL", "Package", "FileList")
+		res.IndexAttrs("ID", "Name", "PrefixPath", "URL", "Status")
+		res.EditAttrs("Name", "PrefixPath", "URL", "FileList", "Package")
 		res.NewAttrs(res.NewAttrs(), "-Status", "-FileList")
+		res.Scope(&admin.Scope{
+			Name:    "",
+			Default: true,
+			Handler: func(db *gorm.DB, ctx *qor.Context) *gorm.DB {
+				return db.Order("id DESC")
+			},
+		})
 
 		res.Action(&admin.Action{
 			Name: "Preview",
