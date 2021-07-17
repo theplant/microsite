@@ -18,6 +18,7 @@ type QorMicroSiteInterface interface {
 	GetMicroSitePackage() *Package
 	GetFileList() []string
 	GetFilesPathWithSiteURL() []string
+	GetFilesPreviewURL() []string
 	GetPreviewURL() string
 	GetVersionName() string
 	SetVersionPriority(string)
@@ -57,6 +58,16 @@ func (site QorMicroSite) GetFileList() (arr []string) {
 func (site QorMicroSite) GetFilesPathWithSiteURL() (arr []string) {
 	for _, v := range site.GetFileList() {
 		arr = append(arr, path.Join(site.GetMicroSiteURL(), v))
+	}
+	return
+}
+
+func (site QorMicroSite) GetFilesPreviewURL() (arr []string) {
+	if site.Package.URL() != "" {
+		_url := "/" + FILE_LIST_DIR + strings.Split(path.Dir(site.Package.URL()), ZIP_PACKAGE_DIR)[1]
+		for _, v := range site.GetFileList() {
+			arr = append(arr, path.Join(_url, v))
+		}
 	}
 	return
 }

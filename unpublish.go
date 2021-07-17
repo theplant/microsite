@@ -6,7 +6,6 @@ import (
 
 	"github.com/jinzhu/gorm"
 	"github.com/qor/media/oss"
-	"github.com/qor/oss/s3"
 	"github.com/theplant/gormutils"
 )
 
@@ -30,7 +29,7 @@ func Unpublish(db *gorm.DB, version QorMicroSiteInterface, printActivityLog bool
 			return
 		}
 
-		if s3, ok := oss.Storage.(*s3.Client); ok {
+		if s3, ok := oss.Storage.(DeleteObjecter); ok {
 			err1 = s3.DeleteObjects(version.GetFilesPathWithSiteURL())
 		} else {
 			for _, o := range version.GetFilesPathWithSiteURL() {

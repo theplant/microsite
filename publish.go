@@ -10,10 +10,13 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/qor/admin"
 	"github.com/qor/media/oss"
-	"github.com/qor/oss/s3"
 	"github.com/qor/publish2"
 	"github.com/theplant/gormutils"
 )
+
+type DeleteObjecter interface {
+	DeleteObjects(paths []string) (err error)
+}
 
 func Publish(db *gorm.DB, version QorMicroSiteInterface, printActivityLog bool) (err error) {
 	tableName := db.NewScope(version).TableName()
@@ -41,7 +44,7 @@ func Publish(db *gorm.DB, version QorMicroSiteInterface, printActivityLog bool) 
 		now := gorm.NowFunc()
 		// If there is a published version, unpublish it
 		if liveRecord.GetId() != 0 {
-			if s3, ok := oss.Storage.(*s3.Client); ok {
+			if s3, ok := oss.Storage.(DeleteObjecter); ok {
 				err1 = s3.DeleteObjects(liveRecord.GetFilesPathWithSiteURL())
 			} else {
 				for _, o := range liveRecord.GetFilesPathWithSiteURL() {
@@ -76,6 +79,15 @@ func Publish(db *gorm.DB, version QorMicroSiteInterface, printActivityLog bool) 
 
 		if _, err1 = UnzipPkgAndUpload(version.GetMicroSitePackage().Url, version.GetMicroSiteURL()); err1 != nil {
 			return
+		}
+
+		//clear preview files
+		if s3, ok := oss.Storage.(DeleteObjecter); ok {
+			s3.DeleteObjects(version.GetFilesPreviewURL())
+		} else {
+			for _, o := range version.GetFilesPreviewURL() {
+				oss.Storage.Delete(o)
+			}
 		}
 
 		return

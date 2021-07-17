@@ -79,6 +79,9 @@ func (site *QorMicroSite) ConfigureQorResourceBeforeInitialize(res resource.Reso
 			Type: "readonly",
 			Valuer: func(value interface{}, ctx *qor.Context) interface{} {
 				site := value.(QorMicroSiteInterface)
+				if site.GetStatus() == Status_unpublished {
+					return ""
+				}
 				var result string
 				htmlFiles := []string{}
 				otherFiles := []string{}
