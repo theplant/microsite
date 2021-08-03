@@ -160,9 +160,8 @@ func (site QorMicroSite) GetPreviewURL() string {
 	if site.Package.Url == "" {
 		return ""
 	}
-	_url := strings.Replace(path.Dir(site.Package.URL()), ZIP_PACKAGE_DIR, FILE_LIST_DIR, 1)
 	endPoint := oss.Storage.GetEndpoint()
 	endPoint = removeHttpPrefix(endPoint)
 
-	return "//" + path.Join(endPoint, FILE_LIST_DIR, strings.Split(_url, FILE_LIST_DIR)[1], "index.html")
+	return "//" + path.Join(endPoint, FILE_LIST_DIR, fmt.Sprint(site.ID), site.VersionName, "index.html")
 }

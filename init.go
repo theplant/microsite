@@ -96,13 +96,13 @@ func (site *QorMicroSite) ConfigureQorResourceBeforeInitialize(res resource.Reso
 				_url := strings.TrimSuffix(site.GetPreviewURL(), "/index.html")
 				// List all html files first
 				for _, v := range htmlFiles {
-					result += fmt.Sprintf(`<br><a href="%v" target="_blank"> %v </a>`, _url+"/"+v, v)
+					result += fmt.Sprintf(`<br><a href="%v" target="_blank"> %v </a>`, _url+"/"+strings.TrimLeft(v, "/"), v)
 				}
 				// Add view all button
 				result += `<br><p style='margin:10px 0'><span>Assets</span><p>`
 				result += `<div>`
 				for _, v := range otherFiles {
-					result += fmt.Sprintf(`<a href="%v" target="_blank">%v</a><br>`, _url+"/"+v, v)
+					result += fmt.Sprintf(`<a href="%v" target="_blank">%v</a><br>`, _url+"/"+strings.TrimLeft(v, "/"), v)
 				}
 				result += `</div>`
 
