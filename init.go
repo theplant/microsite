@@ -3,6 +3,7 @@ package microsite
 import (
 	"fmt"
 	"html/template"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -53,10 +54,8 @@ func Init(s3 oss.StorageInterface, adm *admin.Admin, siteStruct QorMicroSiteInte
 	db := adm.DB
 	db.AutoMigrate(siteStruct)
 	res := adm.AddResource(siteStruct, admConfig)
-
 	publish2.RegisterCallbacks(db)
 	media.RegisterCallbacks(db)
-	media.RegisterMediaHandler("unzip_package_handler", unzipPackageHandler{})
 
 	return res
 }
@@ -158,5 +157,34 @@ func (site *QorMicroSite) ConfigureQorResourceBeforeInitialize(res resource.Reso
 			},
 			Modes: []string{"edit"},
 		})
+		oldSavehandler := res.SaveHandler
+		res.SaveHandler = savehandler(oldSavehandler)
+	}
+}
+
+func savehandler(oldSavehandler func(interface{}, *qor.Context) error) func(resource interface{}, context *qor.Context) error {
+	return func(resource interface{}, context *qor.Context) error {
+		if site, ok := resource.(QorMicroSiteInterface); ok {
+			//TODO: handle delete
+			if site.GetMicroSitePackage().Delete {
+				return nil
+			}
+
+			err := oldSavehandler(resource, context)
+			if err != nil {
+				return err
+			}
+
+			if site.GetMicroSitePackage().FileHeader != nil ||
+				context.Request.URL.Query().Get("primary_key[qor_micro_sites_version_name]") != site.GetVersionName() { //avoid copying when normal updating
+				files, err := UnzipPkgAndUpload(site.GetMicroSitePackage().Url, path.Join(FILE_LIST_DIR, fmt.Sprint(site.GetId()), site.GetVersionName()))
+				if err != nil {
+					return err
+				}
+				site.SetFileList(files)
+				return context.DB.Save(site).Error
+			}
+		}
+		return nil
 	}
 }

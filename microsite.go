@@ -1,12 +1,14 @@
 package microsite
 
 import (
+	"encoding/json"
 	"fmt"
 	"path"
 	"strings"
 	"time"
 
 	"github.com/jinzhu/gorm"
+	"github.com/qor/media/oss"
 	"github.com/qor/publish2"
 )
 
@@ -15,7 +17,7 @@ type QorMicroSiteInterface interface {
 	GetId() uint
 	GetMicroSiteURL() string
 	GetPrefixPath() string
-	GetMicroSitePackage() *Package
+	GetMicroSitePackage() *oss.OSS
 	GetFileList() []string
 	GetFilesPathWithSiteURL() []string
 	GetFilesPreviewURL() []string
@@ -28,6 +30,7 @@ type QorMicroSiteInterface interface {
 	PublishCallBack(db *gorm.DB, sitePath string) error
 	UnPublishCallBack(db *gorm.DB, sitePath string) error
 
+	SetFileList(string)
 	SetStatus(string)
 	SetScheduledEndAt(*time.Time)
 }
@@ -43,7 +46,8 @@ type QorMicroSite struct {
 	PrefixPath string
 	URL        string
 	Status     string
-	Package    Package `gorm:"size:65536" media_library:"url:/microsite/zips/{{primary_key}}/{{short_hash}}/{{filename}}"`
+	FileList   string
+	Package    oss.OSS `gorm:"size:65536" media_library:"url:/microsite/zips/{{primary_key}}/{{short_hash}}/{{filename}}"`
 }
 
 // GetMicroSiteID will return a site's ID
@@ -52,7 +56,8 @@ func (site QorMicroSite) GetId() uint {
 }
 
 func (site QorMicroSite) GetFileList() (arr []string) {
-	return strings.Split(site.Package.Options["file_list"], ",")
+	json.Unmarshal([]byte(site.FileList), &arr)
+	return
 }
 
 func (site QorMicroSite) GetFilesPathWithSiteURL() (arr []string) {
@@ -81,8 +86,8 @@ func (site QorMicroSite) GetPrefixPath() string {
 	return site.PrefixPath
 }
 
-// GetMicroSitePackage get microsite package
-func (site QorMicroSite) GetMicroSitePackage() *Package {
+// // GetMicroSitePackage get microsite package
+func (site QorMicroSite) GetMicroSitePackage() *oss.OSS {
 	return &site.Package
 }
 
@@ -112,6 +117,10 @@ func (site *QorMicroSite) SetStatus(status string) {
 
 func (site *QorMicroSite) SetScheduledEndAt(t *time.Time) {
 	site.ScheduledEndAt = t
+}
+
+func (site *QorMicroSite) SetFileList(s string) {
+	site.FileList = s
 }
 
 func (site QorMicroSite) PublishCallBack(db *gorm.DB, sitePath string) error {
@@ -145,4 +154,15 @@ func (site *QorMicroSite) BeforeDelete(db *gorm.DB) (err error) {
 	}
 
 	return
+}
+
+func (site QorMicroSite) GetPreviewURL() string {
+	if site.Package.Url == "" {
+		return ""
+	}
+	_url := strings.Replace(path.Dir(site.Package.URL()), ZIP_PACKAGE_DIR, FILE_LIST_DIR, 1)
+	endPoint := oss.Storage.GetEndpoint()
+	endPoint = removeHttpPrefix(endPoint)
+
+	return "//" + path.Join(endPoint, FILE_LIST_DIR, strings.Split(_url, FILE_LIST_DIR)[1], "index.html")
 }

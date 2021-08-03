@@ -3,68 +3,25 @@ package microsite
 import (
 	"archive/zip"
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
-	"path"
 	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
 	"unicode/utf8"
 
-	"github.com/qor/media"
 	mediaoss "github.com/qor/media/oss"
 	"github.com/qor/qor/utils"
 )
 
-// Package microsite's packages struct
-type Package struct {
-	mediaoss.OSS
-}
-
-func (site QorMicroSite) GetPreviewURL() string {
-	if site.Package.Url == "" {
-		return ""
-	}
-	_url := strings.Replace(path.Dir(site.Package.URL()), ZIP_PACKAGE_DIR, FILE_LIST_DIR, 1)
-	endPoint := mediaoss.Storage.GetEndpoint()
-	endPoint = removeHttpPrefix(endPoint)
-
-	return "//" + path.Join(endPoint, FILE_LIST_DIR, strings.Split(_url, FILE_LIST_DIR)[1], "index.html")
-}
-
-// unzipPackageHandler unzip microsite package
-type unzipPackageHandler struct {
-}
-
-func (packageHandler unzipPackageHandler) CouldHandle(media media.Media) bool {
-	if _, ok := media.(*Package); ok {
-		return true
-	}
-	return false
-}
-
 /*
-default path of package: S3Bucket/microsite/zips/id/version/
+default path of package: S3Bucket/microsite/zips/id/hash/
 default path of files: 	 S3Bucket/microsite/id/version/
 */
-func (packageHandler unzipPackageHandler) Handle(media media.Media, file media.FileInterface, option *media.Option) (err error) {
-	if pkg, ok := media.(*Package); ok && file != nil {
-		fileURL := media.URL()
-		fileURL = strings.TrimPrefix(strings.TrimLeft(fileURL, "/"), removeHttpPrefix(mediaoss.Storage.GetEndpoint()))
-		if err = media.Store(fileURL, option, file); err == nil {
-			if pkg.Options == nil {
-				pkg.Options = map[string]string{}
-			}
-			pkg.Options["file_list"], err = UnzipPkgAndUpload(fileURL, filepath.Dir(fileURL))
-			return err
-		}
-	}
-	return err
-}
-
 type fileReader struct {
 	path   string
 	reader *bytes.Reader
@@ -132,7 +89,6 @@ func UnzipPkgAndUpload(pkgURL, dest string) (files string, err error) {
 	}
 
 	arr := []string{}
-	dest = strings.Replace(dest, ZIP_PACKAGE_DIR, FILE_LIST_DIR, 1)
 
 Loop:
 	for _, f := range reader.File {
@@ -176,7 +132,9 @@ Loop:
 	if err != nil {
 		return
 	}
-	return strings.Join(arr, ","), nil
+
+	data, err := json.Marshal(arr)
+	return string(data), err
 }
 
 //create tempFile at locale and return its name
