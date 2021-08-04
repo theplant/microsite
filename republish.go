@@ -62,6 +62,8 @@ func Republish(db *gorm.DB, version QorMicroSiteInterface, printActivityLog bool
 		}
 
 		version.SetStatus(Status_published)
+		version.SetScheduledStartAt(&now)
+		version.SetScheduledEndAt(nil)
 		version.SetVersionPriority(fmt.Sprintf("%v", now.UTC().Format(time.RFC3339)))
 		if err1 = tx.Save(version).Error; err1 != nil {
 			return

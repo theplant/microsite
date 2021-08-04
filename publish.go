@@ -67,6 +67,7 @@ func Publish(db *gorm.DB, version QorMicroSiteInterface, printActivityLog bool) 
 
 		// Publish given version
 		version.SetStatus(Status_published)
+		version.SetScheduledStartAt(&now)
 		version.SetVersionPriority(fmt.Sprintf("%v", now.UTC().Format(time.RFC3339)))
 		if err1 = tx.Save(version).Error; err1 != nil {
 			return

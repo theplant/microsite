@@ -31,6 +31,7 @@ type QorMicroSiteInterface interface {
 
 	SetFileList(string)
 	SetStatus(string)
+	SetScheduledStartAt(*time.Time)
 	SetScheduledEndAt(*time.Time)
 }
 
@@ -112,6 +113,10 @@ func (site QorMicroSite) GetStatus() string {
 
 func (site *QorMicroSite) SetStatus(status string) {
 	site.Status = status
+}
+
+func (site *QorMicroSite) SetScheduledStartAt(t *time.Time) {
+	site.ScheduledStartAt = t
 }
 
 func (site *QorMicroSite) SetScheduledEndAt(t *time.Time) {
