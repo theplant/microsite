@@ -42,6 +42,8 @@ var (
 		Action_publish:   "Published",
 		Action_republish: "Unpublished",
 	}
+
+	mdb *gorm.DB
 )
 
 func Init(s3 oss.StorageInterface, adm *admin.Admin, siteStruct QorMicroSiteInterface, admConfig *admin.Config) *admin.Resource {
@@ -51,11 +53,11 @@ func Init(s3 oss.StorageInterface, adm *admin.Admin, siteStruct QorMicroSiteInte
 
 	mediaoss.Storage = s3
 
-	db := adm.DB
-	db.AutoMigrate(siteStruct)
+	mdb = adm.DB
+	mdb.AutoMigrate(siteStruct)
 	res := adm.AddResource(siteStruct, admConfig)
-	publish2.RegisterCallbacks(db)
-	media.RegisterCallbacks(db)
+	publish2.RegisterCallbacks(mdb)
+	media.RegisterCallbacks(mdb)
 
 	return res
 }

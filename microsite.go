@@ -151,10 +151,9 @@ func (site *QorMicroSite) BeforeUpdate(db *gorm.DB) (err error) {
 	return nil
 }
 
-func (site *QorMicroSite) BeforeDelete(db *gorm.DB) (err error) {
+func (site *QorMicroSite) BeforeDelete() (err error) {
 	if site.Status == Status_published {
-		err = Unpublish(db, site, false)
-		return
+		err = Unpublish(mdb, site, false)
 	} else if site.Status != Status_unpublished { //draft,approved,review
 		//clear preview files
 		if s3, ok := oss.Storage.(DeleteObjecter); ok {
