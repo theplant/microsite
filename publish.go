@@ -81,6 +81,15 @@ func Publish(db *gorm.DB, version QorMicroSiteInterface, printActivityLog bool) 
 			return
 		}
 
+		//clear preview files
+		if s3, ok := oss.Storage.(DeleteObjecter); ok {
+			err1 = s3.DeleteObjects(version.GetFilesPreviewURL())
+		} else {
+			for _, o := range version.GetFilesPreviewURL() {
+				oss.Storage.Delete(o)
+			}
+		}
+
 		return
 	})
 

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"path"
-	"strings"
 	"time"
 
 	"github.com/jinzhu/gorm"
@@ -69,7 +68,7 @@ func (site QorMicroSite) GetFilesPathWithSiteURL() (arr []string) {
 
 func (site QorMicroSite) GetFilesPreviewURL() (arr []string) {
 	if site.Package.URL() != "" {
-		_url := "/" + FILE_LIST_DIR + strings.Split(path.Dir(site.Package.URL()), ZIP_PACKAGE_DIR)[1]
+		_url := path.Join("/"+FILE_LIST_DIR, fmt.Sprint(site.ID), site.VersionName)
 		for _, v := range site.GetFileList() {
 			arr = append(arr, path.Join(_url, v))
 		}
@@ -151,6 +150,15 @@ func (site *QorMicroSite) BeforeDelete(db *gorm.DB) (err error) {
 	if site.Status == Status_published {
 		err = Unpublish(db, site, false)
 		return
+	} else if site.Status != Status_unpublished { //draft,approved,review
+		//clear preview files
+		if s3, ok := oss.Storage.(DeleteObjecter); ok {
+			err = s3.DeleteObjects(site.GetFilesPreviewURL())
+		} else {
+			for _, o := range site.GetFilesPreviewURL() {
+				oss.Storage.Delete(o)
+			}
+		}
 	}
 
 	return
