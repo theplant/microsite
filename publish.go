@@ -18,7 +18,7 @@ type DeleteObjecter interface {
 	DeleteObjects(paths []string) (err error)
 }
 
-func Publish(db *gorm.DB, version QorMicroSiteInterface, printActivityLog bool) (err error) {
+func Publish(db *gorm.DB, version QorMicroSiteInterface, arg *admin.ActionArgument) (err error) {
 	tableName := db.NewScope(version).TableName()
 
 	err = gormutils.Transact(db, func(tx *gorm.DB) (err1 error) {
@@ -60,7 +60,7 @@ func Publish(db *gorm.DB, version QorMicroSiteInterface, printActivityLog bool) 
 				return
 			}
 
-			if err1 = liveRecord.UnPublishCallBack(tx, liveRecord.GetMicroSiteURL()); err1 != nil {
+			if err1 = liveRecord.UnPublishCallBack(tx, liveRecord.GetMicroSiteURL(), arg); err1 != nil {
 				return
 			}
 		}
@@ -74,7 +74,7 @@ func Publish(db *gorm.DB, version QorMicroSiteInterface, printActivityLog bool) 
 		}
 
 		// If callback has error, instead of rollback s3 changes. we call that expensive operation later.
-		if err1 = version.PublishCallBack(tx, version.GetMicroSiteURL()); err1 != nil {
+		if err1 = version.PublishCallBack(tx, version.GetMicroSiteURL(), arg); err1 != nil {
 			return
 		}
 

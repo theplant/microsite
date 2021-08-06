@@ -14,15 +14,15 @@ func ChangeStatus(argument *admin.ActionArgument, action string) (err error) {
 			argument.Context.Result = version
 			status := changeStatusActionMap[action]
 			if action == Action_publish {
-				if err = Publish(db, version, true); err != nil {
+				if err = Publish(db, version, argument); err != nil {
 					return
 				}
 			} else if action == Action_republish {
-				if err = Republish(db, version, true); err != nil {
+				if err = Republish(db, version, argument); err != nil {
 					return
 				}
 			} else if action == Action_unpublish {
-				if err = Unpublish(db, version, true); err != nil {
+				if err = Unpublish(db, version, argument); err != nil {
 					return
 				}
 			} else {

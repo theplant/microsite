@@ -14,7 +14,7 @@ func ToPublishMicrosites(db *gorm.DB, readyForPublishStatus string, fn GetSiteFu
 	}
 
 	for _, site := range sites {
-		if err := Publish(db, site, true); err != nil {
+		if err := Publish(db, site, nil); err != nil {
 			return err
 		}
 	}
@@ -28,7 +28,7 @@ func ToUnpublishMicrosites(db *gorm.DB, unPublishStatus string, fn GetSiteFunc) 
 	}
 
 	for _, site := range sites {
-		if err := Unpublish(db, site, true); err != nil {
+		if err := Unpublish(db, site, nil); err != nil {
 			return err
 		}
 	}

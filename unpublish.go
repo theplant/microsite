@@ -5,11 +5,12 @@ import (
 	"strings"
 
 	"github.com/jinzhu/gorm"
+	"github.com/qor/admin"
 	"github.com/qor/media/oss"
 	"github.com/theplant/gormutils"
 )
 
-func Unpublish(db *gorm.DB, version QorMicroSiteInterface, printActivityLog bool) (err error) {
+func Unpublish(db *gorm.DB, version QorMicroSiteInterface, arg *admin.ActionArgument) (err error) {
 	tableName := db.NewScope(version).TableName()
 
 	err = gormutils.Transact(db, func(tx *gorm.DB) (err1 error) {
@@ -26,7 +27,7 @@ func Unpublish(db *gorm.DB, version QorMicroSiteInterface, printActivityLog bool
 			return
 		}
 
-		if err1 = version.UnPublishCallBack(tx, version.GetMicroSiteURL()); err1 != nil {
+		if err1 = version.UnPublishCallBack(tx, version.GetMicroSiteURL(), arg); err1 != nil {
 			return
 		}
 

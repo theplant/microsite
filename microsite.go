@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/jinzhu/gorm"
+	"github.com/qor/admin"
 	"github.com/qor/media/oss"
 	"github.com/qor/publish2"
 )
@@ -26,8 +27,8 @@ type QorMicroSiteInterface interface {
 	GetStatus() string
 	TableName() string
 	GetCreatedAt() time.Time
-	PublishCallBack(db *gorm.DB, sitePath string) error
-	UnPublishCallBack(db *gorm.DB, sitePath string) error
+	PublishCallBack(db *gorm.DB, sitePath string, arg *admin.ActionArgument) error
+	UnPublishCallBack(db *gorm.DB, sitePath string, arg *admin.ActionArgument) error
 
 	SetFileList(string)
 	SetStatus(string)
@@ -127,11 +128,11 @@ func (site *QorMicroSite) SetFileList(s string) {
 	site.FileList = s
 }
 
-func (site QorMicroSite) PublishCallBack(db *gorm.DB, sitePath string) error {
+func (site QorMicroSite) PublishCallBack(db *gorm.DB, sitePath string, arg *admin.ActionArgument) error {
 	return nil
 }
 
-func (site QorMicroSite) UnPublishCallBack(db *gorm.DB, sitePath string) error {
+func (site QorMicroSite) UnPublishCallBack(db *gorm.DB, sitePath string, arg *admin.ActionArgument) error {
 	return nil
 }
 
@@ -153,7 +154,7 @@ func (site *QorMicroSite) BeforeUpdate(db *gorm.DB) (err error) {
 
 func (site *QorMicroSite) BeforeDelete() (err error) {
 	if site.Status == Status_published {
-		err = Unpublish(mdb, site, false)
+		err = Unpublish(mdb, site, nil)
 	} else if site.Status != Status_unpublished { //draft,approved,review
 		//clear preview files
 		if s3, ok := oss.Storage.(DeleteObjecter); ok {
