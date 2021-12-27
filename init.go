@@ -17,9 +17,6 @@ import (
 )
 
 const (
-	ZIP_PACKAGE_DIR = "microsite/zips/"
-	FILE_LIST_DIR   = "microsite/"
-
 	Action_preview   = "preview"
 	Action_publish   = "publish"
 	Action_republish = "republish"
@@ -31,6 +28,9 @@ const (
 )
 
 var (
+	ZIP_PACKAGE_DIR = "microsite/zips/"
+	FILE_LIST_DIR   = "microsite/"
+	
 	//default value os.TempDir()
 	TempDir             string
 	CountOfThreadUpload int = 5
