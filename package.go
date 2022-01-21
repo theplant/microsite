@@ -9,10 +9,8 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"sort"
 	"strings"
 	"sync"
-	"unicode/utf8"
 
 	"github.com/qor/media"
 	mediaoss "github.com/qor/media/oss"
@@ -71,7 +69,6 @@ type fileReader struct {
 }
 
 func UnzipPkgAndUpload(pkgURL, dest string) (files string, err error) {
-	baseName := strings.TrimSuffix(filepath.Base(pkgURL), filepath.Ext(pkgURL))
 	fileName, err := getFileLocalName(pkgURL)
 	if err != nil {
 		return files, err
@@ -85,35 +82,6 @@ func UnzipPkgAndUpload(pkgURL, dest string) (files string, err error) {
 		return files, err
 	}
 	defer reader.Close()
-
-	filePrefix := baseName
-	{
-		folders := []string{}
-		for _, f := range reader.File {
-			if !utf8.Valid([]byte(f.Name)) {
-				return files, fmt.Errorf("zip invalidURI: %v", f.Name)
-			}
-			if !strings.HasPrefix(f.Name, "__MACOSX") && f.FileInfo().IsDir() {
-				folders = append(folders, f.Name)
-			}
-		}
-		sort.Strings(folders)
-		if len(folders) > 0 {
-			matched := true
-			newPrefix := folders[0]
-			for _, folder := range folders {
-				if !strings.HasPrefix(folder, newPrefix) {
-					matched = false
-					break
-				}
-			}
-
-			if matched {
-				//if baseName has dir levels, only get the first level.
-				filePrefix = strings.Split(newPrefix, "/")[0] + "/"
-			}
-		}
-	}
 
 	chFile := make(chan fileReader, CountOfThreadUpload+2)
 	chErrs := make(chan error)
@@ -151,8 +119,7 @@ Loop:
 					break Loop
 				}
 
-				fixedFileName := strings.TrimPrefix(f.Name, filePrefix)
-				arr = append(arr, fixedFileName)
+				arr = append(arr, f.Name)
 
 				content, err = ioutil.ReadAll(rc)
 				if err != nil {
@@ -162,7 +129,7 @@ Loop:
 				rc.Close()
 
 				// Fix Zip Slip Vulnerability https://snyk.io/research/zip-slip-vulnerability#go
-				pth, err = utils.SafeJoin(dest, fixedFileName)
+				pth, err = utils.SafeJoin(dest, f.Name)
 				if err != nil {
 					break Loop
 				}
