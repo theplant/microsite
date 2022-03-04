@@ -5,40 +5,45 @@ import (
 	"github.com/qor/publish2"
 )
 
-func ToPublishMicrosites(db *gorm.DB, readyForPublishStatus string) error {
-	sites, err := GetSites(db, readyForPublishStatus)
+type GetSiteFunc func(db *gorm.DB, targetStatus string) ([]QorMicroSiteInterface, error)
+
+func ToPublishMicrosites(db *gorm.DB, readyForPublishStatus string, fn GetSiteFunc) error {
+	sites, err := fn(db, readyForPublishStatus)
 	if err != nil {
 		return err
 	}
 
 	for _, site := range sites {
-		if err := Publish(db, &site, true); err != nil {
+		if err := Publish(db, site, nil); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func ToUnpublishMicrosites(db *gorm.DB, unPublishStatus string) error {
-	sites, err := GetSites(db, unPublishStatus)
+func ToUnpublishMicrosites(db *gorm.DB, unPublishStatus string, fn GetSiteFunc) error {
+	sites, err := fn(db, unPublishStatus)
 	if err != nil {
 		return err
 	}
 
 	for _, site := range sites {
-		if err := Unpublish(db, &site, true); err != nil {
+		if err := Unpublish(db, site, nil); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func GetSites(db *gorm.DB, targetStatus string) ([]QorMicroSite, error) {
+func GetSites(db *gorm.DB, targetStatus string) (arr []QorMicroSiteInterface, err error) {
 	sites := []QorMicroSite{}
 
 	if err := db.Set(publish2.VersionMode, publish2.VersionMultipleMode).Where("status = ?", targetStatus).Find(&sites).Error; err != nil {
-		return []QorMicroSite{}, err
+		return arr, err
 	}
 
-	return sites, nil
+	for _, v := range sites {
+		arr = append(arr, &v)
+	}
+	return
 }

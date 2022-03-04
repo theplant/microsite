@@ -36,7 +36,7 @@ func TestTobeOnlineSites(t *testing.T) {
 	if len(sites) != 1 {
 		t.Error("not returning correct numbers of sites")
 	}
-	if sites[0].ID != m1.ID {
+	if sites[0].GetId() != m1.ID {
 		t.Error("not returning correct site")
 	}
 }
@@ -66,7 +66,7 @@ func TestTobeOfflineSites(t *testing.T) {
 	if len(sites) != 1 {
 		t.Error("not returning correct numbers of sites")
 	}
-	if sites[0].ID != m1.ID {
+	if sites[0].GetId() != m1.ID {
 		t.Error("not returning correct site")
 	}
 }

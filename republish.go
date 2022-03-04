@@ -14,7 +14,7 @@ import (
 	"github.com/theplant/gormutils"
 )
 
-func Republish(db *gorm.DB, version QorMicroSiteInterface, printActivityLog bool) (err error) {
+func Republish(db *gorm.DB, version QorMicroSiteInterface, arg *admin.ActionArgument) (err error) {
 	tableName := db.NewScope(version).TableName()
 
 	err = gormutils.Transact(db, func(tx *gorm.DB) (err1 error) {
@@ -55,13 +55,15 @@ func Republish(db *gorm.DB, version QorMicroSiteInterface, printActivityLog bool
 			}
 
 			if liveRecord.GetVersionName() != version.GetVersionName() {
-				if err1 = liveRecord.UnPublishCallBack(db, liveRecord.GetMicroSiteURL()); err1 != nil {
+				if err1 = liveRecord.UnPublishCallBack(db, liveRecord.GetMicroSiteURL(), arg); err1 != nil {
 					return
 				}
 			}
 		}
 
 		version.SetStatus(Status_published)
+		version.SetScheduledStartAt(&now)
+		version.SetScheduledEndAt(nil)
 		version.SetVersionPriority(fmt.Sprintf("%v", now.UTC().Format(time.RFC3339)))
 		if err1 = tx.Save(version).Error; err1 != nil {
 			return
@@ -72,7 +74,7 @@ func Republish(db *gorm.DB, version QorMicroSiteInterface, printActivityLog bool
 		}
 
 		if liveRecord.GetVersionName() != version.GetVersionName() {
-			err1 = version.PublishCallBack(db, version.GetMicroSiteURL())
+			err1 = version.PublishCallBack(db, version.GetMicroSiteURL(), arg)
 		}
 		return
 	})

@@ -18,7 +18,7 @@ type DeleteObjecter interface {
 	DeleteObjects(paths []string) (err error)
 }
 
-func Publish(db *gorm.DB, version QorMicroSiteInterface, printActivityLog bool) (err error) {
+func Publish(db *gorm.DB, version QorMicroSiteInterface, arg *admin.ActionArgument) (err error) {
 	tableName := db.NewScope(version).TableName()
 
 	err = gormutils.Transact(db, func(tx *gorm.DB) (err1 error) {
@@ -60,25 +60,35 @@ func Publish(db *gorm.DB, version QorMicroSiteInterface, printActivityLog bool) 
 				return
 			}
 
-			if err1 = liveRecord.UnPublishCallBack(tx, liveRecord.GetMicroSiteURL()); err1 != nil {
+			if err1 = liveRecord.UnPublishCallBack(tx, liveRecord.GetMicroSiteURL(), arg); err1 != nil {
 				return
 			}
 		}
 
 		// Publish given version
 		version.SetStatus(Status_published)
+		version.SetScheduledStartAt(&now)
 		version.SetVersionPriority(fmt.Sprintf("%v", now.UTC().Format(time.RFC3339)))
 		if err1 = tx.Save(version).Error; err1 != nil {
 			return
 		}
 
 		// If callback has error, instead of rollback s3 changes. we call that expensive operation later.
-		if err1 = version.PublishCallBack(tx, version.GetMicroSiteURL()); err1 != nil {
+		if err1 = version.PublishCallBack(tx, version.GetMicroSiteURL(), arg); err1 != nil {
 			return
 		}
 
 		if _, err1 = UnzipPkgAndUpload(version.GetMicroSitePackage().Url, version.GetMicroSiteURL()); err1 != nil {
 			return
+		}
+
+		//clear preview files
+		if s3, ok := oss.Storage.(DeleteObjecter); ok {
+			err1 = s3.DeleteObjects(version.GetFilesPreviewURL())
+		} else {
+			for _, o := range version.GetFilesPreviewURL() {
+				oss.Storage.Delete(o)
+			}
 		}
 
 		return

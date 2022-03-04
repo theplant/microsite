@@ -1,12 +1,14 @@
 package microsite
 
 import (
+	"encoding/json"
 	"fmt"
 	"path"
-	"strings"
 	"time"
 
 	"github.com/jinzhu/gorm"
+	"github.com/qor/admin"
+	"github.com/qor/media/oss"
 	"github.com/qor/publish2"
 )
 
@@ -15,7 +17,7 @@ type QorMicroSiteInterface interface {
 	GetId() uint
 	GetMicroSiteURL() string
 	GetPrefixPath() string
-	GetMicroSitePackage() *Package
+	GetMicroSitePackage() *oss.OSS
 	GetFileList() []string
 	GetFilesPathWithSiteURL() []string
 	GetFilesPreviewURL() []string
@@ -25,10 +27,12 @@ type QorMicroSiteInterface interface {
 	GetStatus() string
 	TableName() string
 	GetCreatedAt() time.Time
-	PublishCallBack(db *gorm.DB, sitePath string) error
-	UnPublishCallBack(db *gorm.DB, sitePath string) error
+	PublishCallBack(db *gorm.DB, sitePath string, arg *admin.ActionArgument) error
+	UnPublishCallBack(db *gorm.DB, sitePath string, arg *admin.ActionArgument) error
 
+	SetFileList(string)
 	SetStatus(string)
+	SetScheduledStartAt(*time.Time)
 	SetScheduledEndAt(*time.Time)
 }
 
@@ -43,7 +47,8 @@ type QorMicroSite struct {
 	PrefixPath string
 	URL        string
 	Status     string
-	Package    Package `gorm:"size:65536" media_library:"url:/microsite/zips/{{primary_key}}/{{short_hash}}/{{filename}}"`
+	FileList   string
+	Package    oss.OSS `gorm:"size:65536" media_library:"url:/microsite/zips/{{primary_key}}/{{short_hash}}/{{filename}}"`
 }
 
 // GetMicroSiteID will return a site's ID
@@ -52,7 +57,8 @@ func (site QorMicroSite) GetId() uint {
 }
 
 func (site QorMicroSite) GetFileList() (arr []string) {
-	return strings.Split(site.Package.Options["file_list"], ",")
+	json.Unmarshal([]byte(site.FileList), &arr)
+	return
 }
 
 func (site QorMicroSite) GetFilesPathWithSiteURL() (arr []string) {
@@ -64,7 +70,7 @@ func (site QorMicroSite) GetFilesPathWithSiteURL() (arr []string) {
 
 func (site QorMicroSite) GetFilesPreviewURL() (arr []string) {
 	if site.Package.URL() != "" {
-		_url := "/" + FILE_LIST_DIR + strings.Split(path.Dir(site.Package.URL()), ZIP_PACKAGE_DIR)[1]
+		_url := path.Join("/"+FILE_LIST_DIR, fmt.Sprint(site.ID), site.VersionName)
 		for _, v := range site.GetFileList() {
 			arr = append(arr, path.Join(_url, v))
 		}
@@ -81,8 +87,8 @@ func (site QorMicroSite) GetPrefixPath() string {
 	return site.PrefixPath
 }
 
-// GetMicroSitePackage get microsite package
-func (site QorMicroSite) GetMicroSitePackage() *Package {
+// // GetMicroSitePackage get microsite package
+func (site QorMicroSite) GetMicroSitePackage() *oss.OSS {
 	return &site.Package
 }
 
@@ -110,15 +116,23 @@ func (site *QorMicroSite) SetStatus(status string) {
 	site.Status = status
 }
 
+func (site *QorMicroSite) SetScheduledStartAt(t *time.Time) {
+	site.ScheduledStartAt = t
+}
+
 func (site *QorMicroSite) SetScheduledEndAt(t *time.Time) {
 	site.ScheduledEndAt = t
 }
 
-func (site QorMicroSite) PublishCallBack(db *gorm.DB, sitePath string) error {
+func (site *QorMicroSite) SetFileList(s string) {
+	site.FileList = s
+}
+
+func (site QorMicroSite) PublishCallBack(db *gorm.DB, sitePath string, arg *admin.ActionArgument) error {
 	return nil
 }
 
-func (site QorMicroSite) UnPublishCallBack(db *gorm.DB, sitePath string) error {
+func (site QorMicroSite) UnPublishCallBack(db *gorm.DB, sitePath string, arg *admin.ActionArgument) error {
 	return nil
 }
 
@@ -138,11 +152,29 @@ func (site *QorMicroSite) BeforeUpdate(db *gorm.DB) (err error) {
 	return nil
 }
 
-func (site *QorMicroSite) BeforeDelete(db *gorm.DB) (err error) {
+func (site *QorMicroSite) BeforeDelete() (err error) {
 	if site.Status == Status_published {
-		err = Unpublish(db, site, false)
-		return
+		err = Unpublish(mdb, site, nil)
+	} else if site.Status != Status_unpublished { //draft,approved,review
+		//clear preview files
+		if s3, ok := oss.Storage.(DeleteObjecter); ok {
+			err = s3.DeleteObjects(site.GetFilesPreviewURL())
+		} else {
+			for _, o := range site.GetFilesPreviewURL() {
+				oss.Storage.Delete(o)
+			}
+		}
 	}
 
 	return
+}
+
+func (site QorMicroSite) GetPreviewURL() string {
+	if site.Package.Url == "" {
+		return ""
+	}
+	endPoint := oss.Storage.GetEndpoint()
+	endPoint = removeHttpPrefix(endPoint)
+
+	return "//" + path.Join(endPoint, FILE_LIST_DIR, fmt.Sprint(site.ID), site.VersionName, "index.html")
 }
